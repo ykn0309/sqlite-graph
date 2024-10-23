@@ -16,7 +16,7 @@ struct Node {
 Node **adj_list; // adj_list
 static int nNode; // number of nodes
 
-// free the memory of adj_list
+// Free the memory of adj_list
 static void free_adj_list(int n) {
     for (int i = 0; i < n; i++) {
         Node *cur = adj_list[i];
@@ -29,7 +29,7 @@ static void free_adj_list(int n) {
     free(adj_list);
 }
 
-// insert adj node into adj list
+// Insert adj node into adj list.
 static void insert_adj_node(sqlite3_int64 from, sqlite3_int64 to) {
     Node *adj_node = (Node*)malloc(sizeof(Node));
     memset(adj_node, 0, sizeof(Node));
@@ -38,7 +38,7 @@ static void insert_adj_node(sqlite3_int64 from, sqlite3_int64 to) {
     adj_list[from] = adj_node;
 }
 
-// generate a string to present the adj list and return a pointer to the string
+// Generate a string to present the adj list and return a pointer to the string.
 static char* str_adj_list(int node_count) {
     size_t buffer_size = 1024;
     char *result = (char *)malloc(buffer_size);
@@ -106,6 +106,12 @@ static void create_adj_list(sqlite3_context *context, int argc, sqlite3_value **
     if (node_count <= 0) {
         sqlite3_result_error(context, "Invalid node count.", -1);
         return;
+    }
+
+    // If create_adj_list() is called more than once, adj_list has already been allocated memory.
+    // So we should free the previous memory.
+    if (adj_list) {
+        free_adj_list(node_count);
     }
 
     adj_list = (Node**)malloc(node_count * sizeof(Node*));
