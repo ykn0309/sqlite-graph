@@ -1,6 +1,9 @@
 # sqlite-graph
 A graph extension for SQLite
 
+## to-do
+* i only use the count of nodes from node_table so it might be unnessacery to use node_table to create adj list
+
 ```
 create table nodes(id integer, label text, attribute text);
 

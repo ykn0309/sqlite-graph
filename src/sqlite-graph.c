@@ -31,7 +31,8 @@ static void free_adj_list(int n) {
 
 // insert adj node into adj list
 static void insert_adj_node(sqlite3_int64 from, sqlite3_int64 to) {
-    Node *adj_node = (Node*)malloc(sizeof(Node*));
+    Node *adj_node = (Node*)malloc(sizeof(Node));
+    memset(adj_node, 0, sizeof(Node));
     adj_node->iNode = to;
     adj_node->next = adj_list[from];
     adj_list[from] = adj_node;
@@ -39,7 +40,7 @@ static void insert_adj_node(sqlite3_int64 from, sqlite3_int64 to) {
 
 // generate a string to present the adj list and return a pointer to the string
 static char* str_adj_list(int node_count) {
-     size_t buffer_size = 1024;
+    size_t buffer_size = 1024;
     char *result = (char *)malloc(buffer_size);
     if (!result) {
         return NULL; // Memory allocation failed
@@ -49,7 +50,7 @@ static char* str_adj_list(int node_count) {
 
     char line[256];  // Buffer to store each line of adjacency info
     for (int i = 0; i < node_count; i++) {
-        snprintf(line, sizeof(line), "Node %lld: ", (long long)i);
+        snprintf(line, sizeof(line), "Node %lld: ", (sqlite3_int64)i);
         strcat(result, line);
 
         // Traverse the adjacency list for the current node
@@ -58,7 +59,7 @@ static char* str_adj_list(int node_count) {
             strcat(result, "None");
         } else {
             while (current) {
-                snprintf(line, sizeof(line), "%lld -> ", (long long)current->iNode);
+                snprintf(line, sizeof(line), "%lld -> ", current->iNode);
                 strcat(result, line);
                 current = current->next;
             }
@@ -108,6 +109,7 @@ static void create_adj_list(sqlite3_context *context, int argc, sqlite3_value **
     }
 
     adj_list = (Node**)malloc(node_count * sizeof(Node*));
+    memset(adj_list, 0, node_count * sizeof(Node*));
     if(!adj_list) {
         sqlite3_result_error(context, "Memory allocation failed.", -1);
         return;
@@ -127,13 +129,15 @@ static void create_adj_list(sqlite3_context *context, int argc, sqlite3_value **
         assert(from < node_count && to < node_count);
         insert_adj_node(from, to);
     }
+    sqlite3_finalize(stmt);
     sqlite3_result_text(context, "createAdjList OK.", -1, SQLITE_STATIC);
 }
 
 static void show_adj_list(sqlite3_context *context, int argc, sqlite3_value **argv) {
     char *adj_list_str = str_adj_list(nNode);
-    sqlite3_result_text(context, adj_list_str, -1, SQLITE_TRANSIENT);
-    // printf("%s\n", adj_list_str);
+    // sqlite3_result_text(context, adj_list_str, -1, SQLITE_TRANSIENT);
+    printf("%s", adj_list_str);
+    free(adj_list_str);
 }
 
 #ifdef _WIN32
