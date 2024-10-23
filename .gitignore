@@ -1,1 +1,2 @@
-./graph.so
+*.so
+/src/trash
