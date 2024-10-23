@@ -1,19 +1,19 @@
-#include"sqlite3ext.h"
-#include"sqlite3.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include<assert.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
+#include"sqlite3ext.h"
+#include"sqlite3.h"
+#ifdef __cplusplus
+}
+#endif
+#include"types.h"
 
 SQLITE_EXTENSION_INIT1
 
-typedef struct Node Node;
-struct Node {
-    sqlite3_int64 iNode; //node id
-    Node *next; // next node
-};
-
-typedef struct Graph Graph;
 struct Graph {
     Node **adj_list; // adj_list
     int nNode; // Number of nodes
@@ -159,6 +159,11 @@ static void show_adj_list(sqlite3_context *context, int argc, sqlite3_value **ar
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int sqlite3_graph_init(
   sqlite3 *db, 
   char **pzErrMsg, 
@@ -173,3 +178,7 @@ int sqlite3_graph_init(
   sqlite3_create_function(db, "showAdjList", 0, SQLITE_UTF8, 0, show_adj_list, 0, 0);
   return rc;
 }
+
+#ifdef __cplusplus
+}
+#endif

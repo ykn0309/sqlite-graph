@@ -1,2 +1,3 @@
 *.so
+.vscode
 /src/trash
