@@ -14,11 +14,6 @@ extern "C" {
 
 SQLITE_EXTENSION_INIT1
 
-struct Graph {
-    Node **adj_list; // adj_list
-    int nNode; // Number of nodes
-};
-
 Graph *graph;
 
 // Node **adj_list; // adj_list

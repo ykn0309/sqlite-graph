@@ -2,7 +2,9 @@
 A graph extension for SQLite
 
 ## to-do
-* i only use the count of nodes from node_table so it might be unnessacery to use node_table to create adj list
+* 重构代码为Cpp。
+* 现在的代码是按照结点的个数创建一个数组，结点的id和数组的index是一一对应的。这样不够灵活，涉及到增加和删除结点的操作就会有问题。后续打算修改成哈希表。
+* 增加一些数据结构，如NodeList, EdgeList，用来保存所有的结点和边
 
 ```
 create table nodes(id integer, label text, attribute text);
