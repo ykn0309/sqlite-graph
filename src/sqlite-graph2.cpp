@@ -29,14 +29,25 @@ static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3
     sqlite3_stmt *stmt;
     rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
-        sqlite3_result_error(context, "Failed to prepare query.", -1);
+        sqlite3_result_error(context, "Failed to prepare query.\n", -1);
         return;
     }
     while(sqlite3_step(stmt) == SQLITE_ROW) {
+        // Extract each column of a row.
         sqlite3_int64 iEdge = sqlite3_column_int64(stmt, 0); // Edge id
         sqlite3_int64 from_node = sqlite3_column_int64(stmt, 1); // From-node id
         sqlite3_int64 to_node = sqlite3_column_int64(stmt, 2); // To-node id
 
+        // Add from-node and to-node.
+        if (!graph->sameAddNode(from_node) || !graph->sameAddNode(to_node)) {
+            sqlite3_result_error(context, "Failed to add node.\n", -1);
+            return;
+        }
+
+        // Add edge.
+        if (!graph->addEdge(iEdge, from_node, to_node)) {
+            sqlite3_result_error(context, "Failed to add edge.\n", -1);
+        }
     }
 }
 

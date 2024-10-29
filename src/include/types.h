@@ -49,9 +49,28 @@ class NodeMap {
 
         // Insert node. If success, return 1. Else, return 0.
         int insert(sqlite3_int64 id) {
-            if (find(id) != nullptr) {
-                std::cout<<"Node "<<id<<" already exists.";
+            if (id < 0) {
+                std::cout<<"Node id can't smaller than 0.\n";
                 return 0;
+            }
+            if (find(id) != nullptr) {
+                std::cout<<"Node "<<id<<" already exists.\n";
+                return 0;
+            }
+            Node *node = new Node(id);
+            map[id] = node;
+            nNode++;
+            return 1;
+        }
+
+        // If node id exists, return 1.
+        int sameInsert(sqlite3_int64 id) {
+            if (id < 0) {
+                std::cout<<"Node id can't smaller than 0.\n";
+                return 0;
+            }
+            if (find(id) != nullptr) {
+                return 1;
             }
             Node *node = new Node(id);
             map[id] = node;
@@ -62,7 +81,7 @@ class NodeMap {
         // Remove node. If success, return 1. Else, return 0.
         int remove(sqlite3_int64 id) {
             if (find(id) == nullptr) {
-                std::cout<<"Node "<<id<<" doesn't exists.";
+                std::cout<<"Node "<<id<<" doesn't exists.\n";
                 return 0;
             } else {
                 Node *node = map[id];
@@ -101,8 +120,18 @@ class EdgeMap {
 
         // Insert edge
         int insert(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
+            // Ensure edge id >= 0
+            if (id < 0) {
+                std::cout<<"Edge id can't smaller than 0.\n";
+                return 0;
+            }
+            // Ensure from id and to id >= 0
+            if (from < 0 || to < 0) {
+                std::cout<<"Edge id can't smaller than 0.\n";
+                return 0;
+            }
             if (find(id) != nullptr) {
-                std::cout<<"Edge "<<id<<" already exists.";
+                std::cout<<"Edge "<<id<<" already exists.\n";
                 return 0;
             } else {
                 Edge *edge = new Edge(id, from, to); // Node in and Node out exist
@@ -115,7 +144,7 @@ class EdgeMap {
         // remove edge
         int remove(sqlite3_int64 id) {
             if (find(id) == nullptr) {
-                std::cout<<"Edge "<<id<<" doesn't exist.";
+                std::cout<<"Edge "<<id<<" doesn't exist.\n";
                 return 0;
             } else {
                 Edge *edge = map[id];
@@ -136,40 +165,31 @@ class Graph {
         Graph(): nodeMap(nullptr), edgeMap(nullptr){}
         
         int addNode(sqlite3_int64 id) {
-            if (id < 0) {
-                std::cout<<"Node id can't smaller than 0.";
-                return 0;
-            }
             return nodeMap->insert(id);
+        }
+
+        // If node id exists, return 1.
+        int sameAddNode(sqlite3_int64 id) {
+            return nodeMap->sameInsert(id);
         }
 
         int removeNode(sqlite3_int64 id) {
             if (id < 0) {
-                std::cout<<"Node id can't smaller than 0.";
+                std::cout<<"Node id can't smaller than 0.\n";
                 return 0;
             }
             return nodeMap->remove(id);
         }
 
         int addEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
-            // Ensure edge id >= 0
-            if (id < 0) {
-                std::cout<<"Edge id can't smaller than 0.";
-                return 0;
-            }
-            // Ensure from id and to id >= 0
-            if (from < 0 || to < 0) {
-                std::cout<<"Node id can't smaller than 0.";
-                return 0;
-            }
             // Check if from-node exists
             if (nodeMap->find(from) == nullptr) {
-                std::cout<<"In-node doesn't exist.";
+                std::cout<<"In-node doesn't exist.\n";
                 return 0;
             }
             // Check if to-node exists
             if (nodeMap->find(to) == nullptr) {
-                std::cout<<"Out-node doesn't exist.";
+                std::cout<<"Out-node doesn't exist.\n";
                 return 0;
             }
 
@@ -177,10 +197,15 @@ class Graph {
             return edgeMap->insert(id, from, to);
         }
 
+        // No check for from-node and to-node before add edge.
+        int safeAddEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
+            return edgeMap->insert(id, from, to);
+        }
+
         int removeEdge(sqlite3_int64 id) {
             // Ensure edge id >= 0
             if (id < 0) {
-                std::cout<<"Edge id can't smaller than 0.";
+                std::cout<<"Edge id can't smaller than 0.\n";
                 return 0;
             }
 
