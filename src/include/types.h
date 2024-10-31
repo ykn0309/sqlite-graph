@@ -3,6 +3,7 @@
 
 #include<unordered_map>
 #include<set>
+#include<vector>
 #include<iostream>
 
 #ifdef __cplusplus
@@ -31,138 +32,137 @@ struct Edge {
     Edge(sqlite3_int64 id, sqlite3_int64 in, sqlite3_int64 out): iEdge(id), fromNode(id), toNode(id) {} 
 };
 
-class NodeMap {
-    private:
-        std::unordered_map<sqlite3_int64, Node*>map;
-        unsigned int nNode; // Number of nodes
+struct NodeMap {
+    std::unordered_map<sqlite3_int64, Node*>map;
 
-    public:
-        // Find node by id. If node exists, return a pointer to node. Else, return nullptr.
-        Node* find(sqlite3_int64 id) {
-            std::unordered_map<sqlite3_int64, Node*>::iterator it = map.find(id);
-            if (it != map.end()) {
-                return it->second;
-            } else {
-                return nullptr;
-            }
+    unsigned int nNode; // Number of nodes
+
+    // Find node by id. If node exists, return a pointer to node. Else, return nullptr.
+    Node* find(sqlite3_int64 id) {
+        auto it = map.find(id);
+        if (it != map.end()) {
+            return it->second;
+        } else {
+            return nullptr;
         }
+    }
 
-        // Insert node. If success, return 1. Else, return 0.
-        int insert(sqlite3_int64 id) {
-            if (id < 0) {
-                std::cout<<"Node id can't smaller than 0.\n";
-                return 0;
-            }
-            if (find(id) != nullptr) {
-                std::cout<<"Node "<<id<<" already exists.\n";
-                return 0;
-            }
-            Node *node = new Node(id);
-            map[id] = node;
-            nNode++;
+    // Insert node. If success, return 1. Else, return 0.
+    int insert(sqlite3_int64 id) {
+        if (id < 0) {
+            std::cout<<"Node id can't smaller than 0.\n";
+            return 0;
+        }
+        if (find(id) != nullptr) {
+            std::cout<<"Node "<<id<<" already exists.\n";
+            return 0;
+        }
+        Node *node = new Node(id);
+        map[id] = node;
+        nNode++;
+        return 1;
+    }
+
+    // If node id exists, return 1.
+    int sameInsert(sqlite3_int64 id) {
+        if (id < 0) {
+            std::cout<<"Node id can't smaller than 0.\n";
+            return 0;
+        }
+        if (find(id) != nullptr) {
             return 1;
         }
+        Node *node = new Node(id);
+        map[id] = node;
+        nNode++;
+        return 1;
+    }
 
-        // If node id exists, return 1.
-        int sameInsert(sqlite3_int64 id) {
-            if (id < 0) {
-                std::cout<<"Node id can't smaller than 0.\n";
-                return 0;
-            }
-            if (find(id) != nullptr) {
-                return 1;
-            }
-            Node *node = new Node(id);
-            map[id] = node;
-            nNode++;
+    // Remove node. If success, return 1. Else, return 0.
+    int remove(sqlite3_int64 id) {
+        if (id < 0) {
+            std::cout<<"Node id can't smaller than 0.\n";
+            return 0;
+        }
+        if (find(id) == nullptr) {
+            std::cout<<"Node "<<id<<" doesn't exists.\n";
+            return 0;
+        } else {
+            Node *node = map[id];
+            map.erase(id);
+            delete node;
+            nNode--;
             return 1;
         }
+    }
 
-        // Remove node. If success, return 1. Else, return 0.
-        int remove(sqlite3_int64 id) {
-            if (id < 0) {
-                std::cout<<"Node id can't smaller than 0.\n";
-                return 0;
-            }
-            if (find(id) == nullptr) {
-                std::cout<<"Node "<<id<<" doesn't exists.\n";
-                return 0;
-            } else {
-                Node *node = map[id];
-                map.erase(id);
-                delete node;
-                nNode--;
-                return 1;
-            }
-        }
-
-        // Return number of nodes
-        unsigned int getNNode() {
-            return nNode;
-        }
+    // Return number of nodes
+    unsigned int getNNode() {
+        return nNode;
+    }
 };
 
-class EdgeMap {
-    private:
-        std::unordered_map<sqlite3_int64, Edge*>map;
-        unsigned int nEdge; // Number of nodes
-    public:
-        // Return number of edges
-        unsigned int getNEdge() {
-            return nEdge;
-        }
+struct EdgeMap {
+    std::unordered_map<sqlite3_int64, Edge*>map;
 
-        // Find edge by id
-        Edge* find(sqlite3_int64 id) {
-            std::unordered_map<sqlite3_int64, Edge*>::iterator it = map.find(id);
-            if (it != map.end()) {
-                return it->second;
-            } else {
-                return nullptr;
-            }
-        }
+    unsigned int nEdge; // Number of nodes
 
-        // Insert edge
-        int insert(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
-            // Ensure edge id >= 0
-            if (id < 0) {
-                std::cout<<"Edge id can't smaller than 0.\n";
-                return 0;
-            }
-            // Ensure from id and to id >= 0
-            if (from < 0 || to < 0) {
-                std::cout<<"Edge id can't smaller than 0.\n";
-                return 0;
-            }
-            if (find(id) != nullptr) {
-                std::cout<<"Edge "<<id<<" already exists.\n";
-                return 0;
-            } else {
-                Edge *edge = new Edge(id, from, to); // Node in and Node out exist
-                map[id] = edge;
-                nEdge++;
-                return 1;
-            }
-        }
+    // Return number of edges
+    unsigned int getNEdge() {
+        return nEdge;
+    }
 
-        // remove edge
-        int remove(sqlite3_int64 id) {
-            // Ensure edge id >= 0
-            if (id < 0) {
-                std::cout<<"Edge id can't smaller than 0.\n";
-                return 0;
-            }
-            if (find(id) == nullptr) {
-                std::cout<<"Edge "<<id<<" doesn't exist.\n";
-                return 0;
-            } else {
-                Edge *edge = map[id];
-                map.erase(id);
-                delete edge;
-                nEdge--;
-                return 1;
-            }
+    // Find edge by id
+    Edge* find(sqlite3_int64 id) {
+        std::unordered_map<sqlite3_int64, Edge*>::iterator it = map.find(id);
+        if (it != map.end()) {
+            return it->second;
+        } else {
+            return nullptr;
         }
+    }
+
+    // Insert edge
+    int insert(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
+        // Ensure edge id >= 0
+        if (id < 0) {
+            std::cout<<"Edge id can't smaller than 0.\n";
+            return 0;
+        }
+        // Ensure from id and to id >= 0
+        if (from < 0 || to < 0) {
+            std::cout<<"Edge id can't smaller than 0.\n";
+            return 0;
+        }
+        if (find(id) != nullptr) {
+            std::cout<<"Edge "<<id<<" already exists.\n";
+            return 0;
+        } else {
+            Edge *edge = new Edge(id, from, to); // Node in and Node out exist
+            map[id] = edge;
+            nEdge++;
+            return 1;
+        }
+    }
+
+    // remove edge
+    int remove(sqlite3_int64 id) {
+        // Ensure edge id >= 0
+        if (id < 0) {
+            std::cout<<"Edge id can't smaller than 0.\n";
+            return 0;
+        }
+        if (find(id) == nullptr) {
+            std::cout<<"Edge "<<id<<" doesn't exist.\n";
+            return 0;
+        } else {
+            Edge *edge = map[id];
+            map.erase(id);
+            delete edge;
+            nEdge--;
+            return 1;
+        }
+    }
 };
 
 class Graph {
@@ -181,7 +181,18 @@ class Graph {
         }
     
     public:
-        Graph(): nodeMap(nullptr), edgeMap(nullptr){}
+        Graph() {
+            nodeMap = new NodeMap();
+            edgeMap = new EdgeMap();
+        }
+
+        unsigned int getNNode() {
+            return nodeMap->getNNode();
+        }
+
+        unsigned int getNEdge() {
+            return edgeMap->getNEdge();
+        }
         
         int addNode(sqlite3_int64 id) {
             return nodeMap->insert(id);
@@ -258,6 +269,16 @@ class Graph {
             to->inNode.erase(from->iNode);
             to->inEdge.erase(id);
             return edgeMap->remove(id);
+        }
+
+        // Return a vector containing all nodes' pointer
+        std::vector<Node*> nodeList() {
+            std::vector<Node*>list;
+            for (auto it = nodeMap->map.begin(); it != nodeMap->map.end(0); it++) {
+                Node *n = it->second;
+                list.push_back(n);
+            }
+            return list;
         }
 };
 

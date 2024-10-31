@@ -2,9 +2,7 @@
 A graph extension for SQLite
 
 ## to-do
-* 重构代码为Cpp。
-* 现在的代码是按照结点的个数创建一个数组，结点的id和数组的index是一一对应的。这样不够灵活，涉及到增加和删除结点的操作就会有问题。后续打算修改成哈希表。
-* 增加一些数据结构，如NodeList, EdgeList，用来保存所有的结点和边
+* 添加其他的基本函数，增加结点、边，减少结点、边等
 
 ```
 create table nodes(id integer, label text, attribute text);
@@ -32,7 +30,7 @@ insert into edges values
 
 .load ./graph
 
-select createAdjList('nodes', 'edges');
+select createAdjTable('edges', 'id', 'from_node', 'to_node');
 
-select showAdjList();
+select showAdjTable();
 ```

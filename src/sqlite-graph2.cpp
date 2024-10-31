@@ -24,7 +24,7 @@ static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3
     std::string to_column_name = (const char*)sqlite3_value_text(argv[3]);
     int rc = SQLITE_OK;
     std::string sql;
-    sql = "SELECT " + id_column_name + ", " + from_column_name + ", " + to_column_name + " from " + table_name;
+    sql = "SELECT " + id_column_name + ", " + from_column_name + ", " + to_column_name + " from " + table_name + ";";
     sqlite3 *db = sqlite3_context_db_handle(context);
     sqlite3_stmt *stmt;
     rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -49,6 +49,43 @@ static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3
             sqlite3_result_error(context, "Failed to add edge.\n", -1);
         }
     }
+    sqlite3_result_text(context, "OK", -1, SQLITE_STATIC);
+}
+
+// Print adjadency table of the graph
+static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 0);
+    std::vector<Node*> nodeList = graph->nodeList();
+    std::string result;
+
+    for (Node* n : nodeList) {
+        result += std::to_string(n->iNode) + ": \n";
+
+        // In nodes
+        std::string line = "  in: ";
+        if (!n->inNode.size()) {
+            line += "null";
+        } else {
+            for (sqlite3_int64 id : n->inNode) {
+                line += std::to_string(id) + ", ";
+            }
+            line.resize(line.size() - 2); // Delete the last comma.
+        }
+        result += line + "\n";
+
+        // Out nodes
+        line = "  out: ";
+        if (!n->outNode.size()) {
+            line += "null";
+        } else {
+            for (sqlite3_int64 id : n->outNode) {
+                line += std::to_string(id) + ", ";
+            }
+            line.resize(line.size() - 2); // Delete the last comma.
+        }
+        result += line + "\n";
+    }
+    sqlite3_result_text(context, result.c_str(), result.length(), SQLITE_TRANSIENT);
 }
 
 #ifdef _WIN32
@@ -68,8 +105,8 @@ int sqlite3_graph_init(
     SQLITE_EXTENSION_INIT2(pApi);
     /* insert code to initialize your extension here */
     graph = new Graph();
-    sqlite3_create_function(db, "createAdjList", 2, SQLITE_UTF8, 0, createGraphFromEdgeTable, 0, 0);
-    // sqlite3_create_function(db, "showAdjList", 0, SQLITE_UTF8, 0, show_adj_list, 0, 0);
+    sqlite3_create_function(db, "createAdjTable", 4, SQLITE_UTF8, 0, createGraphFromEdgeTable, 0, 0);
+    sqlite3_create_function(db, "showAdjTable", 0, SQLITE_UTF8, 0, printAdjTable, 0, 0);
     return rc;
 }
 
