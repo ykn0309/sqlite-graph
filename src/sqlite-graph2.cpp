@@ -45,7 +45,7 @@ static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3
         }
 
         // Add edge.
-        if (!graph->addEdge(iEdge, from_node, to_node)) {
+        if (!graph->safeAddEdge(iEdge, from_node, to_node)) {
             sqlite3_result_error(context, "Failed to add edge.\n", -1);
         }
     }
