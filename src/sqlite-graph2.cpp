@@ -24,7 +24,7 @@ static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3
     std::string to_column_name = (const char*)sqlite3_value_text(argv[3]);
     int rc = SQLITE_OK;
     std::string sql;
-    sql = "SELECT " + id_column_name + ", " + from_column_name + ", " + to_column_name + " from " + table_name + ";";
+    sql = "SELECT " + id_column_name + ", " + from_column_name + ", " + to_column_name + " FROM " + table_name + ";";
     sqlite3 *db = sqlite3_context_db_handle(context);
     sqlite3_stmt *stmt;
     rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -87,6 +87,8 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
     }
     sqlite3_result_text(context, result.c_str(), result.length(), SQLITE_TRANSIENT);
 }
+
+static void 
 
 #ifdef _WIN32
 __declspec(dllexport)

@@ -2,6 +2,9 @@
 A graph extension for SQLite
 
 ## to-do
+
+* 如何把图持久化
+
 * 添加其他的基本函数，增加结点、边，减少结点、边等
 
 ```
