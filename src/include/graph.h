@@ -48,29 +48,18 @@ struct NodeMap {
     }
 
     // Insert node. If success, return 1. Else, return 0.
-    int insert(sqlite3_int64 id) {
+    int insert(sqlite3_int64 id, bool allow_duplicate) {
         if (id < 0) {
             std::cout<<"Node id can't smaller than 0.\n";
             return 0;
         }
         if (find(id) != nullptr) {
-            std::cout<<"Node "<<id<<" already exists.\n";
-            return 0;
-        }
-        Node *node = new Node(id);
-        map[id] = node;
-        nNode++;
-        return 1;
-    }
-
-    // If node id exists, return 1.
-    int sameInsert(sqlite3_int64 id) {
-        if (id < 0) {
-            std::cout<<"Node id can't smaller than 0.\n";
-            return 0;
-        }
-        if (find(id) != nullptr) {
-            return 1;
+            if (!allow_duplicate) {
+                std::cout<<"Node "<<id<<" already exists.\n";
+                return 0;
+            } else {
+                return 1;
+            }
         }
         Node *node = new Node(id);
         map[id] = node;
@@ -167,40 +156,48 @@ struct EdgeMap {
 
 class Graph {
     private:
+        sqlite3_int64 graph_id;
+        std::string graph_name;
+        bool persistence;
         NodeMap *nodeMap;
         EdgeMap *edgeMap;
-
-        int updateNode(sqlite3_int64 id, sqlite3_int64 inNode, sqlite3_int64 outNode, sqlite3_int64 inEdge, sqlite3_int64 outEdge) {
-            Node *node = nodeMap->find(id);
-            if (!node) return 0;
-            if (inNode >= 0) node->inNode.insert(inNode);
-            if (outNode >= 0) node->outNode.insert(outNode);
-            if (inEdge >= 0) node->inEdge.insert(inEdge);
-            if (outEdge >= 0) node->outEdge.insert(outEdge);
-            return 1;
-        }
+        std::string node_table;
+        std::string edge_table;
     
     public:
-        Graph() {
+        // Delete defaute constructor
+        Graph() = delete;
+
+        // Temporary graph constructor
+        Graph(sqlite3_int64 id, std::string graph_name): graph_id(id), graph_name(graph_name), persistence(0){
             nodeMap = new NodeMap();
             edgeMap = new EdgeMap();
         }
 
+        // Persistence graph constructor
+        Graph(sqlite3_int64 id, std::string graph_name, std::string node_table, std::string edge_table)
+        : graph_id(id), graph_name(graph_name), persistence(1), node_table(node_table), edge_table(edge_table) {
+            nodeMap = new NodeMap();
+            edgeMap = new EdgeMap();
+        }
+
+        // Return number of nodes
         unsigned int getNNode() {
             return nodeMap->getNNode();
         }
 
+        // Return number of edges
         unsigned int getNEdge() {
             return edgeMap->getNEdge();
         }
         
         int addNode(sqlite3_int64 id) {
-            return nodeMap->insert(id);
+            return nodeMap->insert(id, 0);
         }
 
         // If node id exists, return 1.
         int sameAddNode(sqlite3_int64 id) {
-            return nodeMap->sameInsert(id);
+            return nodeMap->insert(id, 1);
         }
 
         // Remove node id and its edges, also update its adj nodes.
@@ -250,8 +247,12 @@ class Graph {
         int safeAddEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
             if (edgeMap->insert(id, from, to)) {
                 // add attributes of from-node and to-node
-                updateNode(from, -1, to, -1, id);
-                updateNode(to, from, -1, id, -1);
+                Node *from_node = nodeMap->find(from);
+                Node *to_node = nodeMap->find(to);
+                from_node->outEdge.insert(to);
+                from_node->outEdge.insert(id);
+                to_node->inNode.insert(from);
+                to_node->inEdge.insert(id);
                 return 1;
             } else {
                 return 0;

@@ -8,7 +8,7 @@ extern "C" {
 #endif
 #include<string>
 #include<cassert>
-#include"types.h"
+#include"graph.h"
 
 SQLITE_EXTENSION_INIT1
 
