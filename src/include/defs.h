@@ -1,0 +1,6 @@
+#define UPDATE_LABEL 0
+#define UPDATE_ATTRIBUTE 1
+#define UPDATE_LABEL_ATTRIBUTE 2
+#define UPDATE_FROM 3
+#define UPDATE_TO 4
+#define UPDATE_FROM_TO 5
