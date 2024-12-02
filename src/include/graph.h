@@ -29,7 +29,7 @@ struct Edge {
     sqlite3_int64 iEdge; // Edge id
     sqlite3_int64 fromNode; // From-node id
     sqlite3_int64 toNode; // To-node id
-    Edge(): iEdge(-1), fromNode(-1), toNode(-1) {}
+    Edge() = delete; // 删除默认构造函数
     Edge(sqlite3_int64 id, sqlite3_int64 in, sqlite3_int64 out): iEdge(id), fromNode(id), toNode(id) {} 
 };
 
@@ -47,42 +47,45 @@ struct NodeMap {
             return nullptr;
         }
     }
-
-    // Insert node. If success, return 1. Else, return 0.
+    
+    /// @brief 插入结点
+    /// @param id 插入结点的id
+    /// @param allow_duplicate 是否允许插入重复结点。1：允许重复，会忽略插入重复结点
+    /// @return 成功返回GRAPH_SUCCESS，失败返回GRAPH_FAILED
     int insert(sqlite3_int64 id, bool allow_duplicate) {
         if (id < 0) {
             std::cout<<"Node id can't smaller than 0.\n";
-            return 0;
+            return GRAPH_SUCCESS;
         }
         if (find(id) != nullptr) {
             if (!allow_duplicate) {
                 std::cout<<"Node "<<id<<" already exists.\n";
-                return 0;
+                return GRAPH_FAILED;
             } else {
-                return 1;
+                return GRAPH_SUCCESS;
             }
         }
         Node *node = new Node(id);
         map[id] = node;
         nNode++;
-        return 1;
+        return GRAPH_SUCCESS;
     }
 
-    // Remove node. If success, return 1. Else, return 0.
+    // Remove node. If success, return GRAPH_SUCCESS. Else, return GRAPH_FAILED.
     int remove(sqlite3_int64 id) {
         if (id < 0) {
             std::cout<<"Node id can't smaller than 0.\n";
-            return 0;
+            return GRAPH_FAILED;
         }
         if (find(id) == nullptr) {
             std::cout<<"Node "<<id<<" doesn't exists.\n";
-            return 0;
+            return GRAPH_FAILED;
         } else {
             Node *node = map[id];
             map.erase(id);
             delete node;
             nNode--;
-            return 1;
+            return GRAPH_SUCCESS;
         }
     }
 
@@ -117,40 +120,42 @@ struct EdgeMap {
         // Ensure edge id >= 0
         if (id < 0) {
             std::cout<<"Edge id can't smaller than 0.\n";
-            return 0;
+            return GRAPH_FAILED;
         }
         // Ensure from id and to id >= 0
         if (from < 0 || to < 0) {
             std::cout<<"Edge id can't smaller than 0.\n";
-            return 0;
+            return GRAPH_FAILED;
         }
         if (find(id) != nullptr) {
             std::cout<<"Edge "<<id<<" already exists.\n";
-            return 0;
+            return GRAPH_FAILED;
         } else {
             Edge *edge = new Edge(id, from, to); // Node in and Node out exist
             map[id] = edge;
             nEdge++;
-            return 1;
+            return GRAPH_SUCCESS;
         }
     }
 
-    // remove edge
+    /// @brief 删除边id
+    /// @param id 要删除边的id
+    /// @return 删除成功，返回``GRAPH_SUCCESS``；删除失败，返回``GRAPH_FAILED``
     int remove(sqlite3_int64 id) {
         // Ensure edge id >= 0
         if (id < 0) {
             std::cout<<"Edge id can't smaller than 0.\n";
-            return 0;
+            return GRAPH_FAILED;
         }
         if (find(id) == nullptr) {
             std::cout<<"Edge "<<id<<" doesn't exist.\n";
-            return 0;
+            return GRAPH_FAILED;
         } else {
             Edge *edge = map[id];
             map.erase(id);
             delete edge;
             nEdge--;
-            return 1;
+            return GRAPH_SUCCESS;
         }
     }
 };
@@ -198,12 +203,11 @@ class Graph {
         std::string graph_label; //图的label
         NodeMap *nodeMap; // 结点hash表
         EdgeMap *edgeMap; // 边hash表
-        bool persistence; // 图是否持久化存储。如果persistence=1，数据库中的表需要和内存中的数据结构同步更新
         BindingInfo *binding_info; // 图和数据库中相关表的绑定信息
 
         // 通过结点的label查找结点id
         // label表示结点id
-        // 找到对应结点，返回结点id；其他情况返回-1
+        // 找到对应结点，返回结点id；其他情况返回GRAPH_FAILED
         sqlite3_int64 getNodeIdByLabel(std::string label) {
             sqlite3_stmt *stmt;
             std::string sql;
@@ -211,20 +215,20 @@ class Graph {
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             } else {
                 if (sqlite3_step(stmt) == SQLITE_ROW) {
                     sqlite3_int64 id = sqlite3_column_int(stmt, 0);
                     return id;
                 } else {
-                    return -1;
+                    return GRAPH_FAILED;
                 }
             }
         }
 
         // 通过label查找边id
         // label表示边id
-        // 找到对应的边，返回边id；其他情况返回-1
+        // 找到对应的边，返回边id；其他情况返回GRAPH_FAILED
         sqlite3_int64 getEdgeIdByLabel(std::string label) {
             sqlite3_stmt *stmt;
             std::string sql;
@@ -232,21 +236,21 @@ class Graph {
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
-                return -1;
+                return GRAPH_FAILED;
             } else {
                 if (sqlite3_step(stmt) == SQLITE_ROW) {
                     sqlite3_int64 id = sqlite3_column_int(stmt, 0);
                     return id;
                 } else {
-                    return -1;
+                    return GRAPH_FAILED;
                 }
             }
         }
 
         // 向与Graph对象对应的NodeTable中插入一个结点
         // label和attribute是结点的标签和属性
-        // 返回插入结点的id
-        sqlite3_int64 insertNodeTable(std::string label, std::string attribute) {
+        // 返回插入结点的id，如果失败，返回GRAPH_FAILED
+        sqlite3_int64 addNodeTable(std::string label, std::string attribute) {
             std::string insert_content; // 插入的内容
             insert_content = " (\"" + label + "\", \"" + attribute + "\") ";
             std::string insert_column; // 插入的列名
@@ -257,7 +261,7 @@ class Graph {
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             } else {
                 return getNodeIdByLabel(label);
             }
@@ -265,16 +269,16 @@ class Graph {
 
         // 根据结点id，删除NodeTable中对应的结点
         // id为结点id
-        // 删除失败，返回-1；删除成功，返回0
-        int deleteNodeTable(sqlite3_int64 id) {
+        // 删除失败，返回GRAPH_FAILED；删除成功，返回GRAPH_SUCCESS
+        int removeNodeTable(sqlite3_int64 id) {
             std::string sql;
             sql = "DELETE FROM " + binding_info->node_table + " WHERE id = " + std::to_string(id);
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             }
-            return 0;
+            return GRAPH_SUCCESS;
         }
 
         // 更新结点id的label和attribute
@@ -282,7 +286,7 @@ class Graph {
         //      * 0：表示只更新label
         //      * 1：表示只更新attribute
         //      * 2：表示更新label和attribute
-        //  成功返回0；失败返回-1
+        //  成功返回GRAPH_SUCCESS；失败返回GRAPH_FAILED
         int updateNodeTable(sqlite3_int64 id, std::string label, std::string attribute, int type) {
             std::string update_column;
             switch (type)
@@ -303,22 +307,22 @@ class Graph {
                 }
                 default: {
                     std::cerr << "Incorrect type to update node table." << std::endl;
-                    return -1;
+                    return GRAPH_FAILED;
                 }
-                return 0;
+                return GRAPH_SUCCESS;
             }
             std::string sql;
             sql = "UPDATE " + binding_info->node_table + " SET " + update_column + " WHERE id = " + std::to_string(id);
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             }
-            return 0;
+            return GRAPH_SUCCESS;
         }
 
-        // 向边表中插入一条边。插入成功，返回边的id；否则返回-1
-        sqlite3_int64 insertEdgeTable(sqlite3_int64 from_node, sqlite3_int64 to_node, std::string label, std::string attribute) {
+        // 向边表中插入一条边。插入成功，返回边的id；否则返回GRAPH_FAILED
+        sqlite3_int64 addEdgeTable(sqlite3_int64 from_node, sqlite3_int64 to_node, std::string label, std::string attribute) {
             std::string insert_column, insert_content, sql;
             insert_column = " (" + binding_info->from_node_alias + ", " + binding_info->to_node_alias + ", " +
                             binding_info->edge_label_alias + ", " + binding_info->edge_attribute_alias + ") ";
@@ -328,22 +332,22 @@ class Graph {
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             } else {
                 return getEdgeIdByLabel(label);
             }
         }
 
-        // 根据边的id，在边表中删除这条边。删除成功，返回0；否则返回-1
-        int deleteEdgeTable(sqlite3_int64 id) {
+        // 根据边的id，在边表中删除这条边。删除成功，返回``GRAPH_SUCCESS``；否则返回``GRAPH_FAILED``
+        int removeEdgeTable(sqlite3_int64 id) {
             std::string sql;
             sql = "DELETE FROM " + binding_info->edge_table + " WHERE id = " + std::to_string(id);
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             }
-            return 0;
+            return GRAPH_SUCCESS;
         }
 
         /*下面两个函数用来更新边表。由于边表的列比较多，所以进行了重载*/
@@ -369,18 +373,18 @@ class Graph {
                 }
                 default: {
                     std::cerr << "Incorrect type to update node table." << std::endl;
-                    return -1;
+                    return GRAPH_FAILED;
                 }
-                return 0;
+                return GRAPH_SUCCESS;
             }
             std::string sql;
             sql = "UPDATE " + binding_info->edge_table + " SET " + update_column + " WHERE id = " + std::to_string(id);
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             }
-            return 0;
+            return GRAPH_SUCCESS;
         }
 
         // 更新边表的label和attribute
@@ -404,33 +408,27 @@ class Graph {
                 }
                 default: {
                     std::cerr << "Incorrect type to update node table." << std::endl;
-                    return -1;
+                    return GRAPH_FAILED;
                 }
-                return 0;
+                return GRAPH_SUCCESS;
             }
             std::string sql;
             sql = "UPDATE " + binding_info->edge_table + " SET " + update_column + " WHERE id = " + std::to_string(id);
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
-                return -1;
+                return GRAPH_FAILED;
             }
-            return 0;
+            return GRAPH_SUCCESS;
         }
     
     public:
-        // Delete defaute constructor
+        // 删除默认构造函数
         Graph() = delete;
 
-        // Temporary graph constructor
-        Graph(sqlite3 *db, sqlite3_int64 id, std::string graph_label): db(db), graph_id(id), graph_label(graph_label), persistence(0){
-            nodeMap = new NodeMap();
-            edgeMap = new EdgeMap();
-        }
-
-        // Persistence graph constructor
+        // 构造函数
         Graph(sqlite3 *db, sqlite3_int64 id, std::string graph_label, BindingInfo *binding_info)
-        : db(db), graph_id(id), graph_label(graph_label), persistence(1), binding_info(binding_info) {
+        : db(db), graph_id(id), graph_label(graph_label), binding_info(binding_info) {
             nodeMap = new NodeMap();
             edgeMap = new EdgeMap();
         }
@@ -444,67 +442,71 @@ class Graph {
         unsigned int getNEdge() {
             return edgeMap->getNEdge();
         }
-        
-        // Add a node to nodeMap by id.
-        int addNode(sqlite3_int64 id) {
-            return nodeMap->insert(id, 0);
+
+        /// @brief 根据结点id添加结点。这个函数只有从结点表添加结点时被直接调用
+        /// @param id 要添加结点的id
+        /// @param type type=1，插入重复id的结点会忽略；type=0，插入重复id的结点会报错
+        /// @return 添加成功，返回``GRAPH_SUCCESS`，否则返回``GRAPH_FAILED``
+        int addNode(sqlite3_int64 id, int type) {
+            return nodeMap->insert(id, type);
         }
 
-        // Add a node to nodeMap by node's label and attribute. Binding node table will be updated.
+        /// @brief Add a node to nodeMap by node's label and attribute. Binding node table will be updated.
+        /// @param label 结点的label
+        /// @param attribute 结点的attribute
+        /// @return 添加成功，返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
         int addNode(std::string label, std::string attribute) {
-
+            sqlite3_int64 id = addNodeTable(label, attribute);
+            if (id == -1) {
+                return GRAPH_FAILED; // 插入失败
+            } else {
+                return nodeMap->insert(id, 0);
+            }
         }
 
-        // If node id exists, return 1.
-        int sameAddNode(sqlite3_int64 id) {
-            return nodeMap->insert(id, 1);
-        }
-
-        // Remove node id and its edges, also update its adj nodes.
+        /// @brief 删除结点。同时会删除与结点关联的边，更新结点的邻接结点的信息并且更新数据表
+        /// @param id 要删除结点的id
+        /// @return 如果成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
         int removeNode(sqlite3_int64 id) {
             Node *node = nodeMap->find(id);
-
             if (!node) return 0;
-
             for (sqlite3_int64 i : node->inEdge) {
                 Edge *e = edgeMap->find(i);
                 sqlite3_int64 iNode = e->fromNode;
                 Node *n = nodeMap->find(iNode);
                 n->outNode.erase(id);
                 n->outEdge.erase(i);
-                edgeMap->remove(i);
+                removeEdge(i);
             }
-
             for (sqlite3_int64 i : node->outEdge) {
                 Edge *e = edgeMap->find(id);
                 sqlite3_int64 iNode = e->toNode;
                 Node *n = nodeMap->find(iNode);
                 n->inNode.erase(id);
                 n->inEdge.erase(i);
-                edgeMap->remove(i);
+                removeEdge(i);
             }
-            
-            return nodeMap->remove(id);
+            if (nodeMap->remove(id) == GRAPH_SUCCESS) {
+                return removeNodeTable(id); // 
+            } else {
+                return GRAPH_FAILED;
+            }
         }
 
-        int addEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
-            // Check if from-node exists
-            if (nodeMap->find(from) == nullptr) {
-                std::cout<<"In-node doesn't exist.\n";
-                return 0;
-            }
-            // Check if to-node exists
-            if (nodeMap->find(to) == nullptr) {
-                std::cout<<"Out-node doesn't exist.\n";
-                return 0;
-            }
-
-            // Add edge
-            safeAddEdge(id, from, to);
+        /// @brief 根据结点的label来删除结点
+        /// @param label 要删除结点的label
+        /// @return 如果成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int removeNode(std::string label) {
+            sqlite3_int64 id = getNodeIdByLabel(label);
+            return removeNode(id);
         }
 
-        // No check for from-node and to-node before add edge.
-        int safeAddEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
+        /// @brief 在不检查from node和to node的情况下添加边（保证from node和to node都存在）
+        /// @param id 添加边的id
+        /// @param from 起始结点id
+        /// @param to 结束结点id
+        /// @return 成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int AddEdgeWithoutCheckFromAndTo(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
             if (edgeMap->insert(id, from, to)) {
                 // add attributes of from-node and to-node
                 Node *from_node = nodeMap->find(from);
@@ -513,23 +515,62 @@ class Graph {
                 from_node->outEdge.insert(id);
                 to_node->inNode.insert(from);
                 to_node->inEdge.insert(id);
-                return 1;
+                return GRAPH_SUCCESS;
             } else {
-                return 0;
+                return GRAPH_FAILED;
             }
         }
 
-        // Remove edge id and update related in-node and out-node.
+        /// @brief 通过边、起始结点、结束结点的id添加边。这个函数只在通过读取边表添加边时直接使用
+        /// @param id 边的id
+        /// @param from 起始结点的id
+        /// @param to 结束结点的id
+        /// @return 成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int addEdge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
+            // Check if from-node exists
+            if (nodeMap->find(from) == nullptr) {
+                std::cout<<"In-node doesn't exist.\n";
+                return GRAPH_FAILED;
+            }
+            // Check if to-node exists
+            if (nodeMap->find(to) == nullptr) {
+                std::cout<<"Out-node doesn't exist.\n";
+                return GRAPH_FAILED;
+            }
+
+            // Add edge
+            return AddEdgeWithoutCheckFromAndTo(id, from, to);
+        }
+
+        /// @brief 通过边、起始结点、结束结点的label添加边
+        /// @param label 边的label
+        /// @param from_label 起始结点的label
+        /// @param to_label 结束结点的label
+        /// @return 成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int addEdge(std::string label, std::string attribute, std::string from_label, std::string to_label) {
+            sqlite3_int64 from = getNodeIdByLabel(from_label);
+            sqlite3_int64 to = getNodeIdByLabel(to_label);
+            sqlite3_int64 id = addEdgeTable(from, to, label, attribute);
+            return addEdge(id, from, to);
+        }
+
+        /// @brief 用id删除结点并更新与其关联的from node和to node
+        /// @param id 要删除结点的id
+        /// @return 成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
         int removeEdge(sqlite3_int64 id) {
             Edge *edge = edgeMap->find(id);
-            if (!edge) return 0;
+            if (!edge) return GRAPH_FAILED;
             Node *from = nodeMap->find(edge->fromNode);
             Node *to = nodeMap->find(edge->toNode);
             from->outNode.erase(to->iNode);
             from->outEdge.erase(id);
             to->inNode.erase(from->iNode);
             to->inEdge.erase(id);
-            return edgeMap->remove(id);
+            if (edgeMap->remove(id) == GRAPH_SUCCESS) {
+                return removeEdgeTable(id);
+            } else {
+                return GRAPH_FAILED;
+            }
         }
 
         // Return a vector containing all nodes' pointer
