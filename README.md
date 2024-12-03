@@ -3,9 +3,8 @@ A graph extension for SQLite
 
 ## to-do
 
-* 如何把图持久化
-
-* 添加其他的基本函数，增加结点、边，减少结点、边等
+* statement有的没有释放
+* 有bug未修复
 
 ```
 create table nodes(id integer, label text, attribute text);
@@ -33,7 +32,7 @@ insert into edges values
 
 .load ./graph
 
-select createAdjTable('edges', 'id', 'from_node', 'to_node');
+select create('nodes', 'edges', 'label', 'attribute', 'label', 'attribute', 'from_node', 'to_node');
 
 select showAdjTable();
 ```

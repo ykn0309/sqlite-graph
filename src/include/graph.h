@@ -1,10 +1,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include<iostream>
 #include<unordered_map>
 #include<set>
 #include<vector>
-#include<iostream>
 #include"defs.h"
 
 #ifdef __cplusplus
@@ -50,20 +50,15 @@ struct NodeMap {
     
     /// @brief 插入结点
     /// @param id 插入结点的id
-    /// @param allow_duplicate 是否允许插入重复结点。1：允许重复，会忽略插入重复结点
     /// @return 成功返回GRAPH_SUCCESS，失败返回GRAPH_FAILED
-    int insert(sqlite3_int64 id, bool allow_duplicate) {
+    int insert(sqlite3_int64 id) {
         if (id < 0) {
             std::cout<<"Node id can't smaller than 0.\n";
             return GRAPH_SUCCESS;
         }
         if (find(id) != nullptr) {
-            if (!allow_duplicate) {
-                std::cout<<"Node "<<id<<" already exists.\n";
-                return GRAPH_FAILED;
-            } else {
-                return GRAPH_SUCCESS;
-            }
+            std::cout<<"Node "<<id<<" already exists.\n";
+            return GRAPH_FAILED;
         }
         Node *node = new Node(id);
         map[id] = node;
@@ -419,6 +414,47 @@ class Graph {
             }
             return GRAPH_SUCCESS;
         }
+
+        /// @brief 根据图对象的binding_info，把结点和边的数据导入到图数据结构中
+        /// @return 成功，返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int loadGraphFromTable() {
+            int rc = SQLITE_OK;
+            std::string sql;
+            sql = "SELECT id FROM " + binding_info->node_table + ";";
+            sqlite3_stmt *stmt;
+            rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+            if (rc != SQLITE_OK) {
+                std::cerr << "Error: Failed to prepare SQL." << std::endl;
+                return GRAPH_FAILED;
+            }
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                sqlite3_int64 iNode = sqlite3_column_int64(stmt, 0);
+                if (addNode(iNode) != GRAPH_SUCCESS) {
+                    std::cerr << "Error: Failed to add node." << std::endl;
+                    return GRAPH_FAILED;
+                }
+            }
+
+            std::string selected_column = "id, " + binding_info->to_node_alias + ", " + binding_info->from_node_alias;
+            sql = "SELECT " + selected_column + " FROM " + binding_info->edge_table + ";";
+            rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+            if (rc != SQLITE_OK) {
+                std::cerr << "Error: Failed to prepare SQL." << std::endl;
+                return GRAPH_FAILED;
+            }
+            while(sqlite3_step(stmt) == SQLITE_ROW) {
+                sqlite3_int64 iEdge = sqlite3_column_int64(stmt, 0); // Edge id
+                sqlite3_int64 from_node = sqlite3_column_int64(stmt, 1); // From-node id
+                sqlite3_int64 to_node = sqlite3_column_int64(stmt, 2); // To-node id
+
+                // 添加边
+                if (addEdge(iEdge, from_node, to_node)) {
+                    std::cerr << "Error: Failed to add edge." << std::endl;
+                    return GRAPH_FAILED;
+                }
+            }
+            return GRAPH_SUCCESS;
+        }
     
     public:
         // 删除默认构造函数
@@ -428,10 +464,14 @@ class Graph {
         Graph(sqlite3 *db, BindingInfo *binding_info): db(db), binding_info(binding_info) {
             nodeMap = new NodeMap();
             edgeMap = new EdgeMap();
+            if (loadGraphFromTable() != GRAPH_SUCCESS) {
+                std::cerr << "Error: load graph from table failed." << std::endl;
+            }
         }
 
-        // 析构函数，释放nodeMap和edgeMap
+        // 析构函数
         ~Graph() {
+            delete binding_info;
             delete nodeMap;
             delete edgeMap;
         }
@@ -448,10 +488,9 @@ class Graph {
 
         /// @brief 根据结点id添加结点。这个函数只有从结点表添加结点时被直接调用
         /// @param id 要添加结点的id
-        /// @param type type=1，插入重复id的结点会忽略；type=0，插入重复id的结点会报错
         /// @return 添加成功，返回``GRAPH_SUCCESS`，否则返回``GRAPH_FAILED``
-        int addNode(sqlite3_int64 id, int type) {
-            return nodeMap->insert(id, type);
+        int addNode(sqlite3_int64 id) {
+            return nodeMap->insert(id);
         }
 
         /// @brief Add a node to nodeMap by node's label and attribute. Binding node table will be updated.
@@ -463,7 +502,7 @@ class Graph {
             if (id == -1) {
                 return GRAPH_FAILED; // 插入失败
             } else {
-                return nodeMap->insert(id, 0);
+                return nodeMap->insert(id);
             }
         }
 

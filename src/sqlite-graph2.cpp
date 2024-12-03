@@ -8,54 +8,43 @@ extern "C" {
 #endif
 #include<string>
 #include<cassert>
-#include"graph.h"
 
 SQLITE_EXTENSION_INIT1
 
-Graph *graph;
+#include"graph_manager.h"
+#include"graph.h"
 
-// Create a Graph object from edge table
-// argv: table name, edge id, from node, to node
-static void createGraphFromEdgeTable(sqlite3_context *context, int argc, sqlite3_value **argv) {
-    assert(argc == 4);
-    std::string table_name = (const char*)sqlite3_value_text(argv[0]);
-    std::string id_column_name = (const char*)sqlite3_value_text(argv[1]);
-    std::string from_column_name = (const char*)sqlite3_value_text(argv[2]);
-    std::string to_column_name = (const char*)sqlite3_value_text(argv[3]);
-    int rc = SQLITE_OK;
-    std::string sql;
-    sql = "SELECT " + id_column_name + ", " + from_column_name + ", " + to_column_name + " FROM " + table_name + ";";
+GraphManager &graphManager = GraphManager::getGraphManager();
+
+/// @brief 创建一个图
+/// @param argc 参数数量，必须等于8
+static void createGraph(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 8);
+    
+    std::string node_table = (const char*)sqlite3_value_text(argv[0]);
+    std::string edge_table = (const char*)sqlite3_value_text(argv[1]);
+    std::string node_label_alias = (const char*)sqlite3_value_text(argv[2]);
+    std::string node_attribute_alias = (const char*)sqlite3_value_text(argv[3]);
+    std::string edge_label_alias = (const char*)sqlite3_value_text(argv[4]);
+    std::string edge_attribute_alias = (const char*)sqlite3_value_text(argv[5]);
+    std::string from_node_alias = (const char*)sqlite3_value_text(argv[6]);
+    std::string to_node_alias = (const char*)sqlite3_value_text(argv[7]);
+    BindingInfo *binding_info = new BindingInfo(node_table, edge_table, node_label_alias, node_attribute_alias,
+                                                edge_label_alias, edge_attribute_alias, from_node_alias, to_node_alias);
+    
     sqlite3 *db = sqlite3_context_db_handle(context);
-    sqlite3_stmt *stmt;
-    rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
-        sqlite3_result_error(context, "Failed to prepare query.\n", -1);
-        return;
-    }
-    while(sqlite3_step(stmt) == SQLITE_ROW) {
-        // Extract each column of a row.
-        sqlite3_int64 iEdge = sqlite3_column_int64(stmt, 0); // Edge id
-        sqlite3_int64 from_node = sqlite3_column_int64(stmt, 1); // From-node id
-        sqlite3_int64 to_node = sqlite3_column_int64(stmt, 2); // To-node id
-
-        // Add from-node and to-node.
-        if (!graph->sameAddNode(from_node) || !graph->sameAddNode(to_node)) {
-            sqlite3_result_error(context, "Failed to add node.\n", -1);
-            return;
-        }
-
-        // Add edge.
-        if (!graph->safeAddEdge(iEdge, from_node, to_node)) {
-            sqlite3_result_error(context, "Failed to add edge.\n", -1);
-        }
-    }
-    sqlite3_result_text(context, "OK", -1, SQLITE_STATIC);
+    graphManager.newGraph(db, binding_info);
 }
 
 // Print adjadency table of the graph
 static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **argv) {
     assert(argc == 0);
-    std::vector<Node*> nodeList = graph->nodeList();
+
+    Graph *graph = graphManager.getGraph();
+    if (graph == nullptr) {
+        sqlite3_result_error(context, "Error: graph cannot be null.\n", -1);
+    }
+    std::vector<Node*> nodeList = graphManager.getGraph()->nodeList();
     std::string result;
 
     for (Node* n : nodeList) {
@@ -88,8 +77,6 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
     sqlite3_result_text(context, result.c_str(), result.length(), SQLITE_TRANSIENT);
 }
 
-static void 
-
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -106,8 +93,7 @@ int sqlite3_graph_init(
     int rc = SQLITE_OK;
     SQLITE_EXTENSION_INIT2(pApi);
     /* insert code to initialize your extension here */
-    graph = new Graph();
-    sqlite3_create_function(db, "createAdjTable", 4, SQLITE_UTF8, 0, createGraphFromEdgeTable, 0, 0);
+    sqlite3_create_function(db, "createGraph", 8, SQLITE_UTF8, 0, createGraph, 0, 0);
     sqlite3_create_function(db, "showAdjTable", 0, SQLITE_UTF8, 0, printAdjTable, 0, 0);
     return rc;
 }

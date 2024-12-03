@@ -1,4 +1,3 @@
-#include"graph.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -6,10 +5,11 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+#include"graph.h"
 
 class GraphManager {
 private:
-    Graph *graph;
+    Graph *graph = nullptr;
     // 把构造函数私有，保证只有一个实例
     GraphManager() {}
 
@@ -27,10 +27,14 @@ public:
         delete graph;
     }
 
-    Graph* newGraph(sqlite3 *db, BindingInfo *bi) {
+    void newGraph(sqlite3 *db, BindingInfo *bi) {
         if (graph != nullptr) {
             delete graph;
         }
         graph = new Graph(db, bi);
+    }
+
+    Graph* getGraph() {
+        return graph;
     }
 };
