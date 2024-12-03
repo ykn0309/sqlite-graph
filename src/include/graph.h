@@ -199,8 +199,6 @@ struct BindingInfo {
 class Graph {
     private:
         sqlite3 *db; // 图的数据库连接
-        sqlite3_int64 graph_id; // 图的id
-        std::string graph_label; //图的label
         NodeMap *nodeMap; // 结点hash表
         EdgeMap *edgeMap; // 边hash表
         BindingInfo *binding_info; // 图和数据库中相关表的绑定信息
@@ -427,10 +425,15 @@ class Graph {
         Graph() = delete;
 
         // 构造函数
-        Graph(sqlite3 *db, sqlite3_int64 id, std::string graph_label, BindingInfo *binding_info)
-        : db(db), graph_id(id), graph_label(graph_label), binding_info(binding_info) {
+        Graph(sqlite3 *db, BindingInfo *binding_info): db(db), binding_info(binding_info) {
             nodeMap = new NodeMap();
             edgeMap = new EdgeMap();
+        }
+
+        // 析构函数，释放nodeMap和edgeMap
+        ~Graph() {
+            delete nodeMap;
+            delete edgeMap;
         }
 
         // Return number of nodes
