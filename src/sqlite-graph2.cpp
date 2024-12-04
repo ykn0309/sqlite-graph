@@ -77,6 +77,47 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
     sqlite3_result_text(context, result.c_str(), result.length(), SQLITE_TRANSIENT);
 }
 
+
+/// @brief 向图中添加一个结点
+/// @param argc 参数数量，必须等于2
+static void addNode(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 2);
+    std::string label = (const char*)argv[0];
+    std::string attribute = (const char*)argv[1];
+    Graph *graph = graphManager.getGraph();
+    graph->addNode(label, attribute);
+}
+
+/// @brief 向图中删除一个结点
+/// @param argc 参数数量，必须等于1
+static void removeNode(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    std::string label = (const char*)argv[0];
+    Graph *graph = graphManager.getGraph();
+    graph->removeNode(label);
+}
+
+/// @brief 向图中添加一条边
+/// @param argc 参数数量，必须等于4
+static void addEdge(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 4);
+    std::string label = (const char*)argv[0];
+    std::string attribute = (const char*)argv[1];
+    std::string from_label = (const char*)argv[2];
+    std::string to_label = (const char*)argv[3];
+    Graph *graph = graphManager.getGraph();
+    graph->addEdge(label, attribute, from_label, to_label);
+}
+
+/// @brief 向图中删除一条边
+/// @param argc 参数数量，必须等于1
+static void removeEdge(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    std::string label = (const char*)argv[0];
+    Graph *graph = graphManager.getGraph();
+    graph->removeEdge(label);
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -95,6 +136,10 @@ int sqlite3_graph_init(
     /* insert code to initialize your extension here */
     sqlite3_create_function(db, "createGraph", 8, SQLITE_UTF8, 0, createGraph, 0, 0);
     sqlite3_create_function(db, "showAdjTable", 0, SQLITE_UTF8, 0, printAdjTable, 0, 0);
+    sqlite3_create_function(db, "addNode", 0, SQLITE_UTF8, 0, addNode, 0, 0);
+    sqlite3_create_function(db, "removeNode", 0, SQLITE_UTF8, 0, removeNode, 0, 0);
+    sqlite3_create_function(db, "addEdge", 0, SQLITE_UTF8, 0, addEdge, 0, 0);
+    sqlite3_create_function(db, "removeEdge", 0, SQLITE_UTF8, 0, removeEdge, 0, 0);
     return rc;
 }
 

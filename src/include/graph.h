@@ -619,6 +619,14 @@ class Graph {
             }
         }
 
+        /// @brief 根据结点的label来删除边
+        /// @param label 要删除边的label
+        /// @return 如果成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
+        int removeEdge(std::string label) {
+            sqlite3_int64 id = getNodeIdByLabel(label);
+            return removeEdge(id);
+        }
+
         // Return a vector containing all nodes' pointer
         std::vector<Node*> nodeList() {
             std::vector<Node*>list;
