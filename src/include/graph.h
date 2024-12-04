@@ -110,9 +110,13 @@ struct EdgeMap {
         }
     }
 
-    // Insert edge
+    /// @brief 向EdgeMap中插入边
+    /// @param id 插入边的id
+    /// @param from 边的起始结点
+    /// @param to 变得结束结点
+    /// @return 
     int insert(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
-        // Ensure edge id >= 0
+        // 确保edge id >= 0
         if (id < 0) {
             std::cout<<"Edge id can't smaller than 0.\n";
             return GRAPH_FAILED;
@@ -435,7 +439,7 @@ class Graph {
                 }
             }
 
-            std::string selected_column = "id, " + binding_info->to_node_alias + ", " + binding_info->from_node_alias;
+            std::string selected_column = "id, " + binding_info->from_node_alias + ", " + binding_info->to_node_alias;
             sql = "SELECT " + selected_column + " FROM " + binding_info->edge_table + ";";
             rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
             if (rc != SQLITE_OK) {
@@ -448,7 +452,7 @@ class Graph {
                 sqlite3_int64 to_node = sqlite3_column_int64(stmt, 2); // To-node id
 
                 // 添加边
-                if (addEdge(iEdge, from_node, to_node)) {
+                if (addEdge(iEdge, from_node, to_node) != GRAPH_SUCCESS) {
                     std::cerr << "Error: Failed to add edge." << std::endl;
                     return GRAPH_FAILED;
                 }
@@ -549,11 +553,11 @@ class Graph {
         /// @param to 结束结点id
         /// @return 成功返回``GRAPH_SUCCESS``，否则返回``GRAPH_FAILED``
         int AddEdgeWithoutCheckFromAndTo(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to) {
-            if (edgeMap->insert(id, from, to)) {
+            if (edgeMap->insert(id, from, to) == GRAPH_SUCCESS) {
                 // add attributes of from-node and to-node
                 Node *from_node = nodeMap->find(from);
                 Node *to_node = nodeMap->find(to);
-                from_node->outEdge.insert(to);
+                from_node->outNode.insert(to);
                 from_node->outEdge.insert(id);
                 to_node->inNode.insert(from);
                 to_node->inEdge.insert(id);

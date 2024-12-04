@@ -32,7 +32,7 @@ insert into edges values
 
 .load ./graph
 
-select create('nodes', 'edges', 'label', 'attribute', 'label', 'attribute', 'from_node', 'to_node');
+select createGraph('nodes', 'edges', 'label', 'attribute', 'label', 'attribute', 'from_node', 'to_node');
 
 select showAdjTable();
 ```
