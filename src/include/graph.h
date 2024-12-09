@@ -212,12 +212,15 @@ class Graph {
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
+                sqlite3_finalize(stmt);
                 return GRAPH_FAILED;
             } else {
                 if (sqlite3_step(stmt) == SQLITE_ROW) {
                     sqlite3_int64 id = sqlite3_column_int(stmt, 0);
+                    sqlite3_finalize(stmt);
                     return id;
                 } else {
+                    sqlite3_finalize(stmt);
                     return GRAPH_FAILED;
                 }
             }
@@ -233,12 +236,15 @@ class Graph {
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
+                sqlite3_finalize(stmt);
                 return GRAPH_FAILED;
             } else {
                 if (sqlite3_step(stmt) == SQLITE_ROW) {
                     sqlite3_int64 id = sqlite3_column_int(stmt, 0);
+                    sqlite3_finalize(stmt);
                     return id;
                 } else {
+                    sqlite3_finalize(stmt);
                     return GRAPH_FAILED;
                 }
             }
@@ -429,12 +435,14 @@ class Graph {
             rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: Failed to prepare SQL." << std::endl;
+                sqlite3_finalize(stmt);
                 return GRAPH_FAILED;
             }
             while (sqlite3_step(stmt) == SQLITE_ROW) {
                 sqlite3_int64 iNode = sqlite3_column_int64(stmt, 0);
                 if (addNode(iNode) != GRAPH_SUCCESS) {
                     std::cerr << "Error: Failed to add node." << std::endl;
+                    sqlite3_finalize(stmt);
                     return GRAPH_FAILED;
                 }
             }
@@ -444,6 +452,7 @@ class Graph {
             rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: Failed to prepare SQL." << std::endl;
+                sqlite3_finalize(stmt);
                 return GRAPH_FAILED;
             }
             while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -454,9 +463,11 @@ class Graph {
                 // 添加边
                 if (addEdge(iEdge, from_node, to_node) != GRAPH_SUCCESS) {
                     std::cerr << "Error: Failed to add edge." << std::endl;
+                    sqlite3_finalize(stmt);
                     return GRAPH_FAILED;
                 }
             }
+            sqlite3_finalize(stmt);
             return GRAPH_SUCCESS;
         }
     

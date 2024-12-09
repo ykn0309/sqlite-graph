@@ -1,10 +1,19 @@
+<!--
+ * @Author: Kainan Yang ykn0309@qq.com
+ * @Date: 2024-10-16 19:36:13
+ * @LastEditors: Kainan Yang ykn0309@qq.com
+ * @LastEditTime: 2024-12-09 12:55:59
+ * @FilePath: /sqlite-graph/README.md
+ * @Description: 
+ * 
+ * Copyright (c) 2024 by ${git_name_email}, All Rights Reserved. 
+-->
 # sqlite-graph
 A graph extension for SQLite
 
 ## to-do
 
-* statement有的没有释放
-* 有bug未修复
+
 
 ```
 create table nodes(id integer, label text, attribute text);
