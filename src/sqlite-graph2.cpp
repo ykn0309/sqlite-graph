@@ -82,8 +82,8 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
 /// @param argc 参数数量，必须等于2
 static void addNode(sqlite3_context *context, int argc, sqlite3_value **argv) {
     assert(argc == 2);
-    std::string label = (const char*)argv[0];
-    std::string attribute = (const char*)argv[1];
+    std::string label = (const char*)sqlite3_value_text(argv[0]);
+    std::string attribute = (const char*)sqlite3_value_text(argv[1]);
     Graph *graph = graphManager.getGraph();
     graph->addNode(label, attribute);
 }
@@ -92,7 +92,7 @@ static void addNode(sqlite3_context *context, int argc, sqlite3_value **argv) {
 /// @param argc 参数数量，必须等于1
 static void removeNode(sqlite3_context *context, int argc, sqlite3_value **argv) {
     assert(argc == 1);
-    std::string label = (const char*)argv[0];
+    std::string label = (const char*)sqlite3_value_text(argv[0]);
     Graph *graph = graphManager.getGraph();
     graph->removeNode(label);
 }
@@ -101,10 +101,10 @@ static void removeNode(sqlite3_context *context, int argc, sqlite3_value **argv)
 /// @param argc 参数数量，必须等于4
 static void addEdge(sqlite3_context *context, int argc, sqlite3_value **argv) {
     assert(argc == 4);
-    std::string label = (const char*)argv[0];
-    std::string attribute = (const char*)argv[1];
-    std::string from_label = (const char*)argv[2];
-    std::string to_label = (const char*)argv[3];
+    std::string from_label = (const char*)sqlite3_value_text(argv[0]);
+    std::string to_label = (const char*)sqlite3_value_text(argv[1]);
+    std::string label = (const char*)sqlite3_value_text(argv[2]);
+    std::string attribute = (const char*)sqlite3_value_text(argv[3]);
     Graph *graph = graphManager.getGraph();
     graph->addEdge(label, attribute, from_label, to_label);
 }
@@ -113,7 +113,7 @@ static void addEdge(sqlite3_context *context, int argc, sqlite3_value **argv) {
 /// @param argc 参数数量，必须等于1
 static void removeEdge(sqlite3_context *context, int argc, sqlite3_value **argv) {
     assert(argc == 1);
-    std::string label = (const char*)argv[0];
+    std::string label = (const char*)sqlite3_value_text(argv[0]);
     Graph *graph = graphManager.getGraph();
     graph->removeEdge(label);
 }
@@ -136,10 +136,10 @@ int sqlite3_graph_init(
     /* insert code to initialize your extension here */
     sqlite3_create_function(db, "createGraph", 8, SQLITE_UTF8, 0, createGraph, 0, 0);
     sqlite3_create_function(db, "showAdjTable", 0, SQLITE_UTF8, 0, printAdjTable, 0, 0);
-    sqlite3_create_function(db, "addNode", 0, SQLITE_UTF8, 0, addNode, 0, 0);
-    sqlite3_create_function(db, "removeNode", 0, SQLITE_UTF8, 0, removeNode, 0, 0);
-    sqlite3_create_function(db, "addEdge", 0, SQLITE_UTF8, 0, addEdge, 0, 0);
-    sqlite3_create_function(db, "removeEdge", 0, SQLITE_UTF8, 0, removeEdge, 0, 0);
+    sqlite3_create_function(db, "addNode", 2, SQLITE_UTF8, 0, addNode, 0, 0);
+    sqlite3_create_function(db, "removeNode", 1, SQLITE_UTF8, 0, removeNode, 0, 0);
+    sqlite3_create_function(db, "addEdge", 4, SQLITE_UTF8, 0, addEdge, 0, 0);
+    sqlite3_create_function(db, "removeEdge", 1, SQLITE_UTF8, 0, removeEdge, 0, 0);
     return rc;
 }
 

@@ -30,7 +30,7 @@ struct Edge {
     sqlite3_int64 fromNode; // From-node id
     sqlite3_int64 toNode; // To-node id
     Edge() = delete; // 删除默认构造函数
-    Edge(sqlite3_int64 id, sqlite3_int64 in, sqlite3_int64 out): iEdge(id), fromNode(id), toNode(id) {} 
+    Edge(sqlite3_int64 id, sqlite3_int64 from, sqlite3_int64 to): iEdge(id), fromNode(from), toNode(to) {} 
 };
 
 struct NodeMap {
@@ -208,7 +208,7 @@ class Graph {
         sqlite3_int64 getNodeIdByLabel(std::string label) {
             sqlite3_stmt *stmt;
             std::string sql;
-            sql = "SELECT id FROM " + binding_info->node_table + " WHERE " + binding_info->node_label_alias + " = \"" + label + "\";";
+            sql = "SELECT id FROM " + binding_info->node_table + " WHERE " + binding_info->node_label_alias + " = \'" + label + "\';";
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) << std::endl;
@@ -232,7 +232,7 @@ class Graph {
         sqlite3_int64 getEdgeIdByLabel(std::string label) {
             sqlite3_stmt *stmt;
             std::string sql;
-            sql = "SELECT id FROM " + binding_info->edge_table + " WHERE " + binding_info->edge_label_alias + " = \"" + label + "\";";
+            sql = "SELECT id FROM " + binding_info->edge_table + " WHERE " + binding_info->edge_label_alias + " = \'" + label + "\';";
             int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
             if (rc != SQLITE_OK) {
                 std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
@@ -255,9 +255,9 @@ class Graph {
         // 返回插入结点的id，如果失败，返回GRAPH_FAILED
         sqlite3_int64 addNodeTable(std::string label, std::string attribute) {
             std::string insert_content; // 插入的内容
-            insert_content = " (\"" + label + "\", \"" + attribute + "\") ";
+            insert_content = " (\'" + label + "\', \'" + attribute + "\') ";
             std::string insert_column; // 插入的列名
-            insert_column = " (" + binding_info->node_label_alias + binding_info->node_attribute_alias + ") ";
+            insert_column = " (" + binding_info->node_label_alias + ", " + binding_info->node_attribute_alias + ") ";
             std::string sql; // 插入的SQL语句
             sql = "INSERT INTO " + binding_info->node_table + insert_column + "VALUES" + insert_content + ";";
             char *errMsg = 0;
@@ -295,16 +295,16 @@ class Graph {
             switch (type)
             {
                 case UPDATE_LABEL: {
-                    update_column = binding_info->node_label_alias + " = \"" + label + "\"";
+                    update_column = binding_info->node_label_alias + " = \'" + label + "\'";
                     break;
                 }
                 case UPDATE_ATTRIBUTE: {
-                    update_column = binding_info->node_attribute_alias + " = \"" + attribute + "\"";
+                    update_column = binding_info->node_attribute_alias + " = \'" + attribute + "\'";
                     break;
                 }
                 case UPDATE_LABEL_ATTRIBUTE: {
-                    std::string update_label = binding_info->node_label_alias + " = \"" + label + "\"";
-                    std::string update_attribute = binding_info->node_attribute_alias + " = \"" + attribute + "\"";
+                    std::string update_label = binding_info->node_label_alias + " = \'" + label + "\'";
+                    std::string update_attribute = binding_info->node_attribute_alias + " = \'" + attribute + "\'";
                     update_column = update_label + ", " + update_attribute;
                     break;
                 }
@@ -329,8 +329,8 @@ class Graph {
             std::string insert_column, insert_content, sql;
             insert_column = " (" + binding_info->from_node_alias + ", " + binding_info->to_node_alias + ", " +
                             binding_info->edge_label_alias + ", " + binding_info->edge_attribute_alias + ") ";
-            insert_content = " (" + std::to_string(from_node) + ", " + std::to_string(to_node) + ", \"" + label +
-                            "\", \"" + attribute + "\") ";
+            insert_content = " (" + std::to_string(from_node) + ", " + std::to_string(to_node) + ", \'" + label +
+                            "\', \'" + attribute + "\') ";
             sql = "INSERT INTO " + binding_info->edge_table + insert_column + "VALUES" + insert_content + ";";
             int rc = sqlite3_exec(db, sql.c_str(), 0, 0, 0);
             if (rc != SQLITE_OK) {
@@ -396,16 +396,16 @@ class Graph {
             switch (type)
             {
                 case UPDATE_LABEL: {
-                    update_column = binding_info->edge_label_alias + " = \"" + label + "\"";
+                    update_column = binding_info->edge_label_alias + " = \'" + label + "\'";
                     break;
                 }
                 case UPDATE_ATTRIBUTE: {
-                    update_column = binding_info->edge_attribute_alias + " = \"" + attribute + "\"";
+                    update_column = binding_info->edge_attribute_alias + " = \'" + attribute + "\'";
                     break;
                 }
                 case UPDATE_LABEL_ATTRIBUTE: {
-                    std::string update_from = binding_info->edge_label_alias + " = \"" + label + "\"";
-                    std::string update_to = binding_info->edge_attribute_alias + " = \"" + attribute + "\"";
+                    std::string update_from = binding_info->edge_label_alias + " = \'" + label + "\'";
+                    std::string update_to = binding_info->edge_attribute_alias + " = \'" + attribute + "\'";
                     update_column = update_from + ", " + update_to;
                     break;
                 }
@@ -457,8 +457,11 @@ class Graph {
             }
             while(sqlite3_step(stmt) == SQLITE_ROW) {
                 sqlite3_int64 iEdge = sqlite3_column_int64(stmt, 0); // Edge id
-                sqlite3_int64 from_node = sqlite3_column_int64(stmt, 1); // From-node id
-                sqlite3_int64 to_node = sqlite3_column_int64(stmt, 2); // To-node id
+                std::string from_label = (const char*)sqlite3_column_text(stmt, 1); // From-node lab
+                std::string to_label = (const char*)sqlite3_column_text(stmt, 2); // To-node id
+
+                sqlite3_int64 from_node = getNodeIdByLabel(from_label);
+                sqlite3_int64 to_node = getNodeIdByLabel(to_label);
 
                 // 添加边
                 if (addEdge(iEdge, from_node, to_node) != GRAPH_SUCCESS) {
@@ -527,7 +530,8 @@ class Graph {
         int removeNode(sqlite3_int64 id) {
             Node *node = nodeMap->find(id);
             if (!node) return 0;
-            for (sqlite3_int64 i : node->inEdge) {
+            while  (!node->inEdge.empty()) {
+                sqlite3_int64 i = *node->inEdge.begin();
                 Edge *e = edgeMap->find(i);
                 sqlite3_int64 iNode = e->fromNode;
                 Node *n = nodeMap->find(iNode);
@@ -535,7 +539,8 @@ class Graph {
                 n->outEdge.erase(i);
                 removeEdge(i);
             }
-            for (sqlite3_int64 i : node->outEdge) {
+            while (!node->outEdge.empty()) {
+                sqlite3_int64 i = *node->inEdge.begin();
                 Edge *e = edgeMap->find(id);
                 sqlite3_int64 iNode = e->toNode;
                 Node *n = nodeMap->find(iNode);
@@ -608,6 +613,9 @@ class Graph {
             sqlite3_int64 from = getNodeIdByLabel(from_label);
             sqlite3_int64 to = getNodeIdByLabel(to_label);
             sqlite3_int64 id = addEdgeTable(from, to, label, attribute);
+            if (from == GRAPH_FAILED || to == GRAPH_FAILED || id == GRAPH_FAILED) {
+                return GRAPH_FAILED;
+            }
             return addEdge(id, from, to);
         }
 
