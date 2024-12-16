@@ -2,7 +2,7 @@
  * @Author: Kainan Yang ykn0309@whu.edu.cn
  * @Date: 2024-12-11 20:47:32
  * @LastEditors: Kainan Yang ykn0309@whu.edu.cn
- * @LastEditTime: 2024-12-16 11:23:39
+ * @LastEditTime: 2024-12-16 11:39:59
  * @FilePath: /sqlite-graph/src/algorithm.h
  * @Description: 
  * 
@@ -39,11 +39,12 @@ class DFS {
 private:
     NodeMap *nodeMap;
     sqlite3_int64 startNodeId;
+    Graph *graph;
 
 public:
     DFS() = delete;
 
-    DFS(Graph *graph, std::string start_label) {
+    DFS(Graph *graph, std::string start_label): graph(graph) {
         nodeMap = graph->nodeMap;
         sqlite3_int64 id = graph->getNodeIdByLabel(start_label);
         if (id != GRAPH_SUCCESS) {
@@ -53,7 +54,7 @@ public:
         }
     }
 
-    void runDFS();
+    std::vector<std::string> runDFS();
 };
 
 #endif
