@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef GRAPH_H
+#define GRAPH_H
 
 #include<iostream>
 #include<unordered_map>
@@ -116,6 +116,7 @@ struct BindingInfo {
 class Graph {
     private:
         friend class BFS;
+        friend class DFS;
         sqlite3 *db; // 图的数据库连接
         NodeMap *nodeMap; // 结点hash表
         EdgeMap *edgeMap; // 边hash表
@@ -130,6 +131,16 @@ class Graph {
         // label表示边id
         // 找到对应的边，返回边id；其他情况返回GRAPH_FAILED
         sqlite3_int64 getEdgeIdByLabel(std::string label);
+
+        /// @brief 根据id获取结点label
+        /// @param id 结点id
+        /// @return 结点label
+        std::string getNodeLabelById(sqlite3_int64 id);
+
+        /// @brief 根据id获取边的label
+        /// @param id 边id
+        /// @return 边label
+        std::string getEdgeLabelById(sqlite3_int64 id);
 
         // 向与Graph对象对应的NodeTable中插入一个结点
         // label和attribute是结点的标签和属性

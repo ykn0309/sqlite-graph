@@ -153,6 +153,46 @@ sqlite3_int64 Graph::getEdgeIdByLabel(std::string label) {
     }
 }
 
+std::string Graph::getNodeLabelById(sqlite3_int64 id) {
+    sqlite3_stmt *stmt;
+    std::string sql;
+    sql = "SELECT " + binding_info->node_label_alias + " FROM " + binding_info->node_table + " WHERE id = " + std::to_string(id) + ";";
+    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
+        sqlite3_finalize(stmt);
+    } else {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string label  = (const char*)sqlite3_column_text(stmt, 1);
+            sqlite3_finalize(stmt);
+            return label;
+        } else {
+            sqlite3_finalize(stmt);
+            return "ERROR";
+        }
+    }
+}
+
+std::string Graph::getEdgeLabelById(sqlite3_int64 id) {
+    sqlite3_stmt *stmt;
+    std::string sql;
+    sql = "SELECT " + binding_info->edge_label_alias + " FROM " + binding_info->edge_table + " WHERE id = " + std::to_string(id) + ";";
+    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
+        sqlite3_finalize(stmt);
+    } else {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string label  = (const char*)sqlite3_column_text(stmt, 3);
+            sqlite3_finalize(stmt);
+            return label;
+        } else {
+            sqlite3_finalize(stmt);
+            return "ERROR";
+        }
+    }
+}
+
 sqlite3_int64 Graph::addNodeTable(std::string label, std::string attribute) {
     std::string insert_content; // 插入的内容
     insert_content = " (\'" + label + "\', \'" + attribute + "\') ";
