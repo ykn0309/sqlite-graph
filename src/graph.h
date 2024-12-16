@@ -117,30 +117,11 @@ class Graph {
     private:
         friend class BFS;
         friend class DFS;
+        friend class Dijkstra;
         sqlite3 *db; // 图的数据库连接
         NodeMap *nodeMap; // 结点hash表
         EdgeMap *edgeMap; // 边hash表
         BindingInfo *binding_info; // 图和数据库中相关表的绑定信息
-
-        // 通过结点的label查找结点id
-        // label表示结点id
-        // 找到对应结点，返回结点id；其他情况返回GRAPH_FAILED
-        sqlite3_int64 getNodeIdByLabel(std::string label);
-
-        // 通过label查找边id
-        // label表示边id
-        // 找到对应的边，返回边id；其他情况返回GRAPH_FAILED
-        sqlite3_int64 getEdgeIdByLabel(std::string label);
-
-        /// @brief 根据id获取结点label
-        /// @param id 结点id
-        /// @return 结点label
-        std::string getNodeLabelById(sqlite3_int64 id);
-
-        /// @brief 根据id获取边的label
-        /// @param id 边id
-        /// @return 边label
-        std::string getEdgeLabelById(sqlite3_int64 id);
 
         // 向与Graph对象对应的NodeTable中插入一个结点
         // label和attribute是结点的标签和属性
@@ -203,6 +184,38 @@ class Graph {
 
         // Return number of edges
         unsigned int getNEdge();
+
+        // 通过结点的label查找结点id
+        // label表示结点id
+        // 找到对应结点，返回结点id；其他情况返回GRAPH_FAILED
+        sqlite3_int64 getNodeIdByLabel(std::string label);
+
+        // 通过label查找边id
+        // label表示边id
+        // 找到对应的边，返回边id；其他情况返回GRAPH_FAILED
+        sqlite3_int64 getEdgeIdByLabel(std::string label);
+
+        /// @brief 根据id获取结点label
+        /// @param id 结点id
+        /// @return 结点label
+        std::string getNodeLabelById(sqlite3_int64 id);
+
+        /// @brief 根据id获取边的label
+        /// @param id 边id
+        /// @return 边label
+        std::string getEdgeLabelById(sqlite3_int64 id);
+
+        /// @brief 根据id获取结点的attribute
+        /// @param id 结点id
+        /// @return 结点attribute
+        std::string getNodeAttributeById(sqlite3_int64 id);
+
+        /// @brief 根据id获取边的attribute
+        /// @param id 边id
+        /// @return 边attribute
+        std::string getEdgeAttributeById(sqlite3_int64 id);
+
+        double getEdgeWeight(sqlite3_int64 id, std::string weight_alias);
 
         /// @brief 根据结点id添加结点。这个函数只有从结点表添加结点时被直接调用
         /// @param id 要添加结点的id

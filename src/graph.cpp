@@ -4,6 +4,7 @@
 #include<vector>
 #include"defs.h"
 #include"graph.h"
+#include"json.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,6 +13,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+using json = nlohmann::json;
 
 Node* NodeMap::find(sqlite3_int64 id) {
         auto it = map.find(id);
@@ -191,6 +194,53 @@ std::string Graph::getEdgeLabelById(sqlite3_int64 id) {
             return "ERROR";
         }
     }
+}
+
+std::string Graph::getNodeAttributeById(sqlite3_int64 id) {
+    sqlite3_stmt *stmt;
+    std::string sql;
+    sql = "SELECT " + binding_info->node_attribute_alias + " FROM " + binding_info->node_table + " WHERE id = " + std::to_string(id) + ";";
+    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
+        sqlite3_finalize(stmt);
+    } else {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string attribute  = (const char*)sqlite3_column_text(stmt, 2);
+            sqlite3_finalize(stmt);
+            return attribute;
+        } else {
+            sqlite3_finalize(stmt);
+            return "ERROR";
+        }
+    }
+}
+
+std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
+    sqlite3_stmt *stmt;
+    std::string sql;
+    sql = "SELECT " + binding_info->edge_attribute_alias + " FROM " + binding_info->node_table + " WHERE id = " + std::to_string(id) + ";";
+    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
+        sqlite3_finalize(stmt);
+    } else {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string attribute  = (const char*)sqlite3_column_text(stmt, 4);
+            sqlite3_finalize(stmt);
+            return attribute;
+        } else {
+            sqlite3_finalize(stmt);
+            return "ERROR";
+        }
+    }
+}
+
+double Graph::getEdgeWeight(sqlite3_int64 id, std::string weight_alias) {
+    std::string attribute = getEdgeAttributeById(id);
+    json data = json::parse(attribute);
+    double weight = data[weight_alias];
+    return weight;
 }
 
 sqlite3_int64 Graph::addNodeTable(std::string label, std::string attribute) {

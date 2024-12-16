@@ -2,20 +2,19 @@
  * @Author: Kainan Yang ykn0309@whu.edu.cn
  * @Date: 2024-12-03 20:32:18
  * @LastEditors: Kainan Yang ykn0309@whu.edu.cn
- * @LastEditTime: 2024-12-16 11:52:50
+ * @LastEditTime: 2024-12-16 20:27:10
  * @FilePath: /sqlite-graph/src/algorithm.cpp
  * @Description: 
  * 
  */
 #include"algorithm.h"
-#include<queue>
-#include<stack>
-#include<unordered_set>
+
 
 std::vector<std::string> BFS::runBFS() {
     sqlite3_int64 start = startNodeId;
     std::queue<Node*> q;
     std::unordered_set<Node*> visited;
+    NodeMap *nodeMap = graph->nodeMap;
     Node *startNode = nodeMap->find(start);
     
     q.push(startNode);
@@ -42,6 +41,7 @@ std::vector<std::string> DFS::runDFS() {
     sqlite3_int64 start = startNodeId;
     std::stack<Node*> st;
     std::unordered_set<Node*> visited;
+    NodeMap *nodeMap = graph->nodeMap;
     Node *startNode = nodeMap->find(start);
 
     st.push(startNode);
@@ -62,4 +62,29 @@ std::vector<std::string> DFS::runDFS() {
         }
     }
     return result;
+}
+
+using PDI = std::pair<double, sqlite3_int64>;
+
+void Dijkstra::runDijkstra() {
+    std::priority_queue<PDI, std::vector<PDI>, std::greater<>> pq;
+    dist[startNodeId] = 0;
+    pq.push({0, startNodeId});
+
+    while (!pq.empty()) {
+        auto [d, u] = pq.top();
+        pq.pop();
+        if (d > dist[u]) continue;
+
+        Node *node = graph->nodeMap->find(u);
+        for (sqlite3_int64 edge_id : node->outEdge) {
+            double w = graph->getEdgeWeight(edge_id, weight_alias);
+            Edge *e = graph->edgeMap->find(edge_id);
+            sqlite3_int64 v = e->toNode;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
 }
