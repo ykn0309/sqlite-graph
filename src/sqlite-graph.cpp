@@ -13,6 +13,7 @@ SQLITE_EXTENSION_INIT1
 
 #include"graph_manager.h"
 #include"graph.h"
+#include"algorithm.h"
 
 GraphManager &graphManager = GraphManager::getGraphManager();
 
@@ -118,6 +119,36 @@ static void removeEdge(sqlite3_context *context, int argc, sqlite3_value **argv)
     graph->removeEdge(label);
 }
 
+static void bfs(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    std::string start_label = (const char*)sqlite3_value_text(argv[0]);
+    Graph *graph = graphManager.getGraph();
+    BFS b = BFS(graph, start_label);
+    std::vector<std::string> result = b.runBFS();
+    std::string s;
+    for (auto node : result) {
+        s += node + ", ";
+    }
+    s.resize(s.size() - 2);
+    s += "\n";
+    sqlite3_result_text(context, s.c_str(), s.length(), SQLITE_TRANSIENT);
+}
+
+static void dfs(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    std::string start_label = (const char*)sqlite3_value_text(argv[0]);
+    Graph *graph = graphManager.getGraph();
+    DFS d = DFS(graph, start_label);
+    std::vector<std::string> result = d.runDFS();
+    std::string s;
+    for (auto node : result) {
+        s += node + ", ";
+    }
+    s.resize(s.size() - 2);
+    s += "\n";
+    sqlite3_result_text(context, s.c_str(), s.length(), SQLITE_TRANSIENT);
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -140,6 +171,8 @@ int sqlite3_graph_init(
     sqlite3_create_function(db, "removeNode", 1, SQLITE_UTF8, 0, removeNode, 0, 0);
     sqlite3_create_function(db, "addEdge", 4, SQLITE_UTF8, 0, addEdge, 0, 0);
     sqlite3_create_function(db, "removeEdge", 1, SQLITE_UTF8, 0, removeEdge, 0, 0);
+    sqlite3_create_function(db, "bfs", 1, SQLITE_UTF8, 0, bfs, 0, 0);
+    sqlite3_create_function(db, "dfs", 1, SQLITE_UTF8, 0, dfs, 0, 0);
     return rc;
 }
 

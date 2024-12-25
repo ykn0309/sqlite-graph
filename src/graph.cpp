@@ -2,9 +2,6 @@
 #include<unordered_map>
 #include<set>
 #include<vector>
-#include"defs.h"
-#include"graph.h"
-#include"json.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,6 +10,10 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+#include"defs.h"
+#include"graph.h"
+#include"json.hpp"
 
 using json = nlohmann::json;
 
@@ -164,6 +165,7 @@ std::string Graph::getNodeLabelById(sqlite3_int64 id) {
     if (rc != SQLITE_OK) {
         std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
         sqlite3_finalize(stmt);
+        return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string label  = (const char*)sqlite3_column_text(stmt, 1);
@@ -184,6 +186,7 @@ std::string Graph::getEdgeLabelById(sqlite3_int64 id) {
     if (rc != SQLITE_OK) {
         std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
         sqlite3_finalize(stmt);
+        return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string label  = (const char*)sqlite3_column_text(stmt, 3);
@@ -204,6 +207,7 @@ std::string Graph::getNodeAttributeById(sqlite3_int64 id) {
     if (rc != SQLITE_OK) {
         std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
         sqlite3_finalize(stmt);
+        return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string attribute  = (const char*)sqlite3_column_text(stmt, 2);
@@ -224,6 +228,7 @@ std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
     if (rc != SQLITE_OK) {
         std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
         sqlite3_finalize(stmt);
+        return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string attribute  = (const char*)sqlite3_column_text(stmt, 4);
