@@ -427,7 +427,7 @@ std::string Graph::getNodeLabelById(sqlite3_int64 id) {
         return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::string label  = (const char*)sqlite3_column_text(stmt, 1);
+            std::string label  = (const char*)sqlite3_column_text(stmt, 0);
             sqlite3_finalize(stmt);
             return label;
         } else {
@@ -448,7 +448,7 @@ std::string Graph::getEdgeLabelById(sqlite3_int64 id) {
         return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::string label  = (const char*)sqlite3_column_text(stmt, 3);
+            std::string label  = (const char*)sqlite3_column_text(stmt, 0);
             sqlite3_finalize(stmt);
             return label;
         } else {
@@ -469,7 +469,7 @@ std::string Graph::getNodeAttributeById(sqlite3_int64 id) {
         return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::string attribute  = (const char*)sqlite3_column_text(stmt, 2);
+            std::string attribute  = (const char*)sqlite3_column_text(stmt, 0);
             sqlite3_finalize(stmt);
             return attribute;
         } else {
@@ -490,7 +490,7 @@ std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
         return "ERROR";
     } else {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::string attribute  = (const char*)sqlite3_column_text(stmt, 4);
+            std::string attribute  = (const char*)sqlite3_column_text(stmt, 0);
             sqlite3_finalize(stmt);
             return attribute;
         } else {

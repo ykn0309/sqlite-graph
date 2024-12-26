@@ -2,7 +2,7 @@
  * @Author: Kainan Yang ykn0309@whu.edu.cn
  * @Date: 2024-12-11 20:47:32
  * @LastEditors: Kainan Yang ykn0309@whu.edu.cn
- * @LastEditTime: 2024-12-26 19:43:44
+ * @LastEditTime: 2024-12-26 20:40:28
  * @FilePath: /sqlite-graph/src/include/algorithm.h
  * @Description: 
  * 
@@ -28,7 +28,7 @@ public:
     
     BFS(Graph *graph, std::string start_label): graph(graph) {
         sqlite3_int64 id = graph->getNodeIdByLabel(start_label);
-        if (id != GRAPH_SUCCESS) {
+        if (id == GRAPH_FAILED) {
             std::cerr << "Cannot find node by label." << std::endl;
         } else {
             startNodeId = id;
@@ -48,7 +48,7 @@ public:
 
     DFS(Graph *graph, std::string start_label): graph(graph) {
         sqlite3_int64 id = graph->getNodeIdByLabel(start_label);
-        if (id != GRAPH_SUCCESS) {
+        if (id == GRAPH_FAILED) {
             std::cerr << "Cannot find node by label." << std::endl;
         } else {
             startNodeId = id;
@@ -135,7 +135,7 @@ std::vector<std::string> DFS::runDFS() {
         result.push_back(label);
         for (sqlite3_int64 neighbor_id : node->outNode) {
             Node *neighbor = nodeMap->find(neighbor_id);
-            if (visited.find(node) == visited.end()) {
+            if (visited.find(neighbor) == visited.end()) {
                 visited.insert(neighbor);
                 st.push(neighbor);
             }
