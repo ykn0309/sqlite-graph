@@ -829,7 +829,7 @@ int Graph::removeEdge(std::string label) {
 
 std::vector<Node*> Graph::nodeList() {
     std::vector<Node*>list;
-    for (auto it = nodeMap->map.begin(); it != nodeMap->map.end(0); it++) {
+    for (auto it = nodeMap->map.begin(); it != nodeMap->map.end(); it++) {
         Node *n = it->second;
         list.push_back(n);
     }
