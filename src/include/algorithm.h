@@ -63,6 +63,7 @@ private:
     Graph *graph;
     sqlite3_int64 startNodeId;
     std::string weight_alias;
+public:
     std::unordered_map<sqlite3_int64, double> dist;
     std::unordered_map<sqlite3_int64, sqlite3_int64> prev;
 

@@ -149,6 +149,22 @@ static void dfs(sqlite3_context *context, int argc, sqlite3_value **argv) {
     sqlite3_result_text(context, s.c_str(), s.length(), SQLITE_TRANSIENT);
 }
 
+static void dijkstra(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    assert(argc == 3);
+    std::string start_label = (const char*)sqlite3_value_text(argv[0]);
+    std::string end_label = (const char*)sqlite3_value_text(argv[1]);
+    std::string weight_alias = (const char*)sqlite3_value_text(argv[2]);
+    Graph *graph = graphManager.getGraph();
+    Dijkstra dijkstra = Dijkstra(graph, start_label, weight_alias);
+    dijkstra.runDijkstra();
+    for (auto it = dijkstra.dist.begin(); it != dijkstra.dist.end(); it++) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+    for (auto it = dijkstra.prev.begin(); it != dijkstra.prev.end(); it++) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -173,6 +189,7 @@ int sqlite3_graph_init(
     sqlite3_create_function(db, "removeEdge", 1, SQLITE_UTF8, 0, removeEdge, 0, 0);
     sqlite3_create_function(db, "bfs", 1, SQLITE_UTF8, 0, bfs, 0, 0);
     sqlite3_create_function(db, "dfs", 1, SQLITE_UTF8, 0, dfs, 0, 0);
+    sqlite3_create_function(db, "dijkstra", 3, SQLITE_UTF8, 0, dijkstra, 0, 0);
     return rc;
 }
 

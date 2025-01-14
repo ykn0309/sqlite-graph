@@ -3,3 +3,4 @@
 /src/trash
 *.db
 /graph.so.dSYM
+sqlite3
