@@ -8,6 +8,7 @@ extern "C" {
 #endif
 #include<string>
 #include<cassert>
+#include<stack>
 
 SQLITE_EXTENSION_INIT1
 
@@ -157,12 +158,23 @@ static void dijkstra(sqlite3_context *context, int argc, sqlite3_value **argv) {
     Graph *graph = graphManager.getGraph();
     Dijkstra dijkstra = Dijkstra(graph, start_label, weight_alias);
     dijkstra.runDijkstra();
-    for (auto it = dijkstra.dist.begin(); it != dijkstra.dist.end(); it++) {
-        std::cout << it->first << ": " << it->second << std::endl;
+    sqlite3_int64 start_id = dijkstra.startNodeId;
+    sqlite3_int64 end_id = graph->getNodeIdByLabel(end_label);
+    std::stack<sqlite3_int64> st;
+    st.push(end_id);
+    while (st.top() != start_id) {
+        sqlite3_int64 top = st.top();
+        st.push(dijkstra.prev[top]);
     }
-    for (auto it = dijkstra.prev.begin(); it != dijkstra.prev.end(); it++) {
-        std::cout << it->first << ": " << it->second << std::endl;
+    std::string out;
+    while (!st.empty()) {
+        std::string label = graph->getNodeLabelById(st.top());
+        out += label + "->";
+        st.pop();
     }
+    out.erase(out.size() - 2);
+    std::cout << out << std::endl;
+    std::cout << dijkstra.dist[end_id];
 }
 
 #ifdef _WIN32

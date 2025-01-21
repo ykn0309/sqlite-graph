@@ -482,7 +482,7 @@ std::string Graph::getNodeAttributeById(sqlite3_int64 id) {
 std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
     sqlite3_stmt *stmt;
     std::string sql;
-    sql = "SELECT " + binding_info->edge_attribute_alias + " FROM " + binding_info->node_table + " WHERE id = " + std::to_string(id) + ";";
+    sql = "SELECT " + binding_info->edge_attribute_alias + " FROM " + binding_info->edge_table + " WHERE id = " + std::to_string(id) + ";";
     int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0);
     if (rc != SQLITE_OK) {
         std::cerr << "Error: " << sqlite3_errmsg(db) <<std::endl;
@@ -501,7 +501,7 @@ std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
 }
 
 double Graph::getEdgeWeight(sqlite3_int64 id, std::string weight_alias) {
-    std::string attribute = getEdgeAttributeById(id);
+    std::string attribute = "{" + getEdgeAttributeById(id) + "}";
     json data = json::parse(attribute);
     double weight = data[weight_alias];
     return weight;

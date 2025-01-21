@@ -61,9 +61,9 @@ public:
 class Dijkstra {
 private:
     Graph *graph;
-    sqlite3_int64 startNodeId;
     std::string weight_alias;
 public:
+    sqlite3_int64 startNodeId;
     std::unordered_map<sqlite3_int64, double> dist;
     std::unordered_map<sqlite3_int64, sqlite3_int64> prev;
 
@@ -75,7 +75,7 @@ public:
         NodeMap *nodeMap = graph->nodeMap;
 
         sqlite3_int64 id = graph->getNodeIdByLabel(start_label);
-        if (id != GRAPH_SUCCESS) {
+        if (id == GRAPH_FAILED) {
             std::cerr << "Cannot find node by label." << std::endl;
         } else {
             startNodeId = id;
@@ -164,6 +164,7 @@ void Dijkstra::runDijkstra() {
             sqlite3_int64 v = e->toNode;
             if (dist[u] + w < dist[v]) {
                 dist[v] = dist[u] + w;
+                prev[v] = u;
                 pq.push({dist[v], v});
             }
         }
