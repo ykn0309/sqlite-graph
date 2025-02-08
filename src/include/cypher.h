@@ -36,34 +36,104 @@ public:
 
 class Parser {
 public:
+    Parser::Parser(std::string zCypher): zCypher(zCypher) {
+        head = nullptr;
+        parse();
+    }
+
+    CypherNode* getHead() {
+        return head;
+    }
+
+private:
     std::string zCypher; // cypher string
     CypherNode *head; // head of linked list
 
-    Parser::Parser(std::string zCypher): zCypher(zCypher) {
-        head = nullptr;
-    }
-
     // return type of constrain
     int whichConstrainType(std::string constrain) {
-
+        if (constrain == "") return NOCONSTRAIN;
+        else if (constrain[0] == '"') return ATTRIBUTE;
+        else return DEFINITE;
     }
 
     // if parses successfully return GRAPH_SUCCESS, else return GRAPH_FAILED
     int parse() {
         int zCypher_len = zCypher.length();
         if (zCypher[0] != '(') return GRAPH_FAILED;
+        int status = NODE;
         int i = 1;
         std::string constrain;
         while (1) {
             if (zCypher[i] == ')') {
                 int constrain_type = whichConstrainType(constrain);
-                CypherNode *cnode = new CypherNode(NODE, constrain_type, constrain);
+                CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
                 head = cnode;
                 break;
             }
             constrain += zCypher[i];
             i++;
         }
+
+        CypherNode *cur = head;
+
+        while (i < zCypher_len) {
+            if (zCypher[i] == '(') {
+                if (status != EDGE) {
+                    std::cerr << "Error: Should be an edge!" << std::endl;
+                    return GRAPH_FAILED;
+                } else {
+                    status = NODE;
+                }
+                i++;
+                constrain = "";
+                while (1) {
+                    if (zCypher[i] == ')') {
+                        int constrain_type = whichConstrainType(constrain);
+                        CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                        cur->next = cnode;
+                        cur = cur->next;
+                        i++;
+                        break;
+                    }
+                    constrain += zCypher[i];
+                    i++;
+                }
+            } else if (zCypher[i] == '-') {
+                if (status != NODE) {
+                    std::cerr << "Error: Should be an node!" << std::endl;
+                } else {
+                    status = EDGE;
+                }
+                i++;
+                constrain = "";
+                if (zCypher[i] == '-' && zCypher[i+1] == '>') {
+                    i += 2;
+                    continue;
+                } else if (zCypher[i] == '[') {
+                    while (1) {
+                        if (zCypher[i] == ']') {
+                            int constrain_type = whichConstrainType(constrain);
+                            CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                            cur->next = cnode;
+                            cur = cur->next;
+                            if (zCypher[i+1] != '-' || zCypher[i+2] != '>') {
+                                std::cerr << "Error: Should be -> !" << std::endl;
+                                return GRAPH_FAILED;
+                            }
+                            i += 3;
+                            break;
+                        }
+                        constrain += zCypher[i];
+                        i++;
+                    }
+                } else {
+                    return GRAPH_FAILED;
+                }
+            } else {
+                return GRAPH_FAILED;
+            }
+        }
+        return GRAPH_SUCCESS;
     }
 };
 
