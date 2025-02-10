@@ -4,6 +4,7 @@
 #include<iostream>
 #include<vector>
 #include<set>
+#include<unordered_map>
 #include"defs.h"
 #include"graph.h"
 
@@ -152,7 +153,26 @@ public:
     }
 
     int executeNode(CypherNode *node) {
+        if (node->prev == nullptr) {
+            std::unordered_map<sqlite3_int64, Node*> map = graph->nodeMap->map;
+            for(auto it = map.begin(); it != map.end(); it++) {
+                node->set.insert(it->first);
+            }
+        }
+        if (node->constrainType == NOCONSTRAIN) {
+            return GRAPH_SUCCESS;
+        } else if (node->constrainType == DEFINITE) {
+            sqlite3_int64 nodeId = std::stoll(node->constrain);
+            if (graph->nodeMap->find(nodeId) != nullptr) {
+                
+            } else {
+                std::cerr << "ERROR: No this node!" << std:: endl;
+            }
+        } else if (node->constrainType == ATTRIBUTE) {
 
+        } else {
+            return GRAPH_FAILED;
+        }
     }
 
     int executeEdge(CypherNode *edge) {
@@ -161,18 +181,27 @@ public:
 
     int execute() {
         CypherNode *cur = head;
+        CypherNode *certain = nullptr;
         while (cur != nullptr) {
-            switch (cur->type)
-            {
-            case NODE:
-                executeNode(cur);
-                break;
-            case EDGE:
-                executeEdge(cur);
-                break;
-            default:
+            if (cur->type == NODE) {
+                int rc = executeNode(cur);
+                if (rc == GRAPH_MODIFIED) {
+                    //
+                }
+                if (cur->constrainType == DEFINITE) {
+                    certain = cur;
+                }
+            } else if (cur->type == EDGE) {
+                int rc = executeEdge(cur);
+                if (rc == GRAPH_MODIFIED) {
+                    //
+                }
+                if (cur->constrainType == DEFINITE) {
+                    certain = cur;
+                }
+            } else {
                 std::cerr << "ERROR: Type error!" << std::endl;
-                break;
+                return GRAPH_FAILED;
             }
             cur = cur->next;
         }
