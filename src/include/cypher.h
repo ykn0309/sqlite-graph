@@ -5,6 +5,7 @@
 #include<vector>
 #include<set>
 #include<unordered_map>
+#include"json.hpp"
 #include"defs.h"
 #include"graph.h"
 
@@ -21,6 +22,8 @@ extern "C" {
 #define NOCONSTRAIN 0 // no constrain
 #define DEFINITE 1 // definite label
 #define ATTRIBUTE 2 // attribute constrain
+
+using json = nlohmann::json;
 
 class CypherNode {
 public:
@@ -190,7 +193,59 @@ public:
                 std::cerr << "ERROR: No this node!" << std:: endl;
             }
         } else if (node->constrainType == ATTRIBUTE) {
-            
+            std::vector<std::string> key, value;
+            std::string constrain = node->constrain;
+            int constrain_len = constrain.length();
+            int i = 0;
+
+            while (i < constrain_len) {
+                if (constrain[i] == '"') { // begin of a new k-v pair
+                    i++;
+                    std::string k, v;
+                    while (constrain[i] != '"') { // end of k
+                        k += constrain[i];
+                        i++;
+                    }
+                    while (constrain[i] == ' ' || constrain[i] == ':') { // skip space and ':'
+                        i++;
+                    }
+                    while (constrain[i] != ',' && constrain[i] != ' ') { //end of v
+                        if (constrain[i] == '"'){ // skip '"'
+                            i++;
+                            continue;
+                        }
+                        v += constrain[i];
+                        i++;
+                    }
+
+                    key.push_back(k);
+                    value.push_back(v);
+                } else {
+                    continue;
+                }
+            }
+
+            std::vector<sqlite3_int64> to_be_removed;
+            for (auto it = node->set.begin(); it != node->set.end(); it++) {
+                sqlite3_int64 nodeId = *it;
+                Node *n = graph->nodeMap->find(nodeId);
+                if (n == nullptr) {
+                    std::cerr << "ERROR: No this node!" << std::endl;
+                    return GRAPH_FAILED;
+                }
+                std::string attribute = "{" + graph->getNodeAttributeById(nodeId) + "}";
+                json data = json::parse(attribute);
+                int constrain_num = key.size();
+                for (int i = 0; i < constrain_num; i++) {
+                    std::string k = key[i];
+                    std::string v = value[i];
+                    if (!data.contains(k)) {
+                        std::cerr << "ERROR: No this key!" << std::endl;
+                        return GRAPH_FAILED;
+                    }
+                    // compare
+                }
+            }
         } else {
             return GRAPH_FAILED;
         }
@@ -207,7 +262,7 @@ public:
             if (cur->type == NODE) {
                 int rc = executeNode(cur);
                 if (rc == GRAPH_MODIFIED) {
-                    //
+                    // backtrace
                 }
                 /* 如果限制为一个结点，那么在此之前的所有CypherNode的set都确定
                   下来，不会再因为后面新的限制条件而发生改变 */
