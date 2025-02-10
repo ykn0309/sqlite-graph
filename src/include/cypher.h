@@ -239,16 +239,47 @@ public:
                 for (int i = 0; i < constrain_num; i++) {
                     std::string k = key[i];
                     std::string v = value[i];
+                    // ensure attribute of node has the key
                     if (!data.contains(k)) {
                         std::cerr << "ERROR: No this key!" << std::endl;
                         return GRAPH_FAILED;
                     }
-                    // compare
+
+                    // add nodes that do not meet the constrains to to_be_removed list
+                    auto v_type = data[k].type();
+                    if (v_type == json::value_t::string) {
+                        std::string v_str = data[k];
+                        if (v_str != v) {
+                            to_be_removed.push_back(nodeId);
+                            break;
+                        }
+                    } else if (v_type == json::value_t::number_integer) {
+                        int v_int = data[k];
+                        if (v_int != std::stoi(v)) {
+                            to_be_removed.push_back(nodeId);
+                            break;
+                        }
+                    } else if (v_type == json::value_t::number_float) {
+                        double v_float = data[k];
+                        if (v_float != std::stod(v)) {
+                            to_be_removed.push_back(nodeId);
+                            break;
+                        }
+                    } else {
+                        std::cerr << "ERROR: error type of value." << std::endl;
+                        return GRAPH_FAILED;
+                    }
                 }
+            }
+
+            // remove node in to_be_removed
+            for (auto id : to_be_removed) {
+                node->set.erase(id);
             }
         } else {
             return GRAPH_FAILED;
         }
+        return GRAPH_SUCCESS;
     }
 
     int executeEdge(CypherNode *edge) {
