@@ -31,23 +31,18 @@ public:
     CypherNode *next;
 
     CypherNode::CypherNode(int type, int constrainType, std::string constrain): 
-        type(type), constrainType(constrainType), constrain(constrain) {}
+     type(type), constrainType(constrainType), constrain(constrain) {
+        prev = nullptr;
+        next = nullptr;
+    }
 };
 
 class Parser {
 public:
-    Parser::Parser(std::string zCypher): zCypher(zCypher) {
-        head = nullptr;
-        parse();
-    }
-
-    CypherNode* getHead() {
-        return head;
-    }
-
-private:
     std::string zCypher; // cypher string
     CypherNode *head; // head of linked list
+
+    Parser::Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
 
     // return type of constrain
     int whichConstrainType(std::string constrain) {
@@ -90,6 +85,7 @@ private:
                     if (zCypher[i] == ')') {
                         int constrain_type = whichConstrainType(constrain);
                         CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                        cnode->prev = cur;
                         cur->next = cnode;
                         cur = cur->next;
                         i++;
@@ -114,6 +110,7 @@ private:
                         if (zCypher[i] == ']') {
                             int constrain_type = whichConstrainType(constrain);
                             CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                            cnode->prev = cur;
                             cur->next = cnode;
                             cur = cur->next;
                             if (zCypher[i+1] != '-' || zCypher[i+2] != '>') {
@@ -134,6 +131,51 @@ private:
             }
         }
         return GRAPH_SUCCESS;
+    }
+};
+
+class Cypher {
+private:
+    Graph *graph;
+    std::string zCypher;
+    CypherNode *head;
+
+public:
+    Cypher::Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
+    
+    int parse() {
+        Parser *parser = new Parser(zCypher);
+        int rc = parser->parse();
+        if (rc != GRAPH_SUCCESS) return GRAPH_FAILED;
+        head = parser->head;
+        return GRAPH_SUCCESS;
+    }
+
+    int executeNode(CypherNode *node) {
+
+    }
+
+    int executeEdge(CypherNode *edge) {
+
+    }
+
+    int execute() {
+        CypherNode *cur = head;
+        while (cur != nullptr) {
+            switch (cur->type)
+            {
+            case NODE:
+                executeNode(cur);
+                break;
+            case EDGE:
+                executeEdge(cur);
+                break;
+            default:
+                std::cerr << "ERROR: Type error!" << std::endl;
+                break;
+            }
+            cur = cur->next;
+        }
     }
 };
 
