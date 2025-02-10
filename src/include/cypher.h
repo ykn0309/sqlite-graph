@@ -153,23 +153,44 @@ public:
     }
 
     int executeNode(CypherNode *node) {
-        if (node->prev == nullptr) {
+        // initialize set of node
+        if (node->prev == nullptr) { // CypherNode is head
             std::unordered_map<sqlite3_int64, Node*> map = graph->nodeMap->map;
             for(auto it = map.begin(); it != map.end(); it++) {
                 node->set.insert(it->first);
             }
+        } else { // previous CypherNode is an edge
+            CypherNode *edge = node->prev;
+            for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
+                sqlite3_int64 edgeId = *it;
+                Edge *e = graph->edgeMap->find(edgeId);
+                if (e == nullptr) {
+                    std::cerr << "ERROR: No this edge!" << std::endl;
+                    return GRAPH_FAILED;
+                }
+                node->set.insert(e->toNode);
+            }
         }
+        
+        // apply constrain to set of node
         if (node->constrainType == NOCONSTRAIN) {
             return GRAPH_SUCCESS;
         } else if (node->constrainType == DEFINITE) {
             sqlite3_int64 nodeId = std::stoll(node->constrain);
             if (graph->nodeMap->find(nodeId) != nullptr) {
-                
+                // the set has only 1 element and the only element is nodeId, then there is no need to change anything.
+                if (node->set.size() == 1 && node->set.count(nodeId)) {
+                    return GRAPH_SUCCESS;
+                } else {
+                    node->set.clear();
+                    node->set.insert(nodeId);
+                    return GRAPH_MODIFIED;
+                }
             } else {
                 std::cerr << "ERROR: No this node!" << std:: endl;
             }
         } else if (node->constrainType == ATTRIBUTE) {
-
+            
         } else {
             return GRAPH_FAILED;
         }
@@ -188,6 +209,8 @@ public:
                 if (rc == GRAPH_MODIFIED) {
                     //
                 }
+                /* 如果限制为一个结点，那么在此之前的所有CypherNode的set都确定
+                  下来，不会再因为后面新的限制条件而发生改变 */
                 if (cur->constrainType == DEFINITE) {
                     certain = cur;
                 }
