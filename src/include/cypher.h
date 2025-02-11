@@ -47,7 +47,13 @@ public:
     Parser::Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
 
     Parser::~Parser() {
-        //TO-DO
+        CypherNode *p = head;
+        CypherNode *q;
+        while (p != nullptr) {
+            q = p;
+            p = p->next;
+            delete q;
+        }
     }
 
     // return type of constrain
