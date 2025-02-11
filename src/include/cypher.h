@@ -28,6 +28,7 @@ using json = nlohmann::json;
 class CypherNode {
 public:
     int type; // NODE or EDGE
+    bool certain;
     int constrainType; // NOCONSTRAIN or DEFINITE or ATTRIBUTE
     std::string constrain;
     std::set<sqlite3_int64> set; // node set or edge set
@@ -35,10 +36,7 @@ public:
     CypherNode *next;
 
     CypherNode::CypherNode(int type, int constrainType, std::string constrain): 
-     type(type), constrainType(constrainType), constrain(constrain) {
-        prev = nullptr;
-        next = nullptr;
-    }
+     type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {}
 };
 
 class Parser {
@@ -164,8 +162,39 @@ public:
         return GRAPH_SUCCESS;
     }
 
+    int backtraceNode(CypherNode *node, std::vector<sqlite3_int64> *to_be_removed) {
+        CypherNode *edge = node->prev;
+        if (edge == nullptr || edge->certain) return GRAPH_SUCCESS;
+        std::vector<sqlite3_int64> edge_to_be_removed;
+        for (sqlite3_int64 nodeId : *to_be_removed) {
+            Node *n = graph->nodeMap->find(nodeId);
+            if (n == nullptr) return GRAPH_FAILED;
+            for (auto it = n->inEdge.begin(); it != n->inEdge.end(); it++) {
+                edge_to_be_removed.push_back(*it);
+            }
+        }
+        for (sqlite3_int64 edgeId : edge_to_be_removed) {
+            edge->set.erase(edgeId);
+        }
+        return backtraceEdge(edge, &edge_to_be_removed);
+    }
+
+    int backtraceEdge(CypherNode *edge, std::vector<sqlite3_int64> *to_be_removed) {
+        CypherNode *node = edge->prev;
+        if (node->certain) return GRAPH_SUCCESS;
+        std::vector<sqlite3_int64> node_to_be_removed;
+        for (sqlite3_int64 edgeId : *to_be_removed) {
+            Edge *e = graph->edgeMap->find(edgeId);
+            if (e == nullptr) return GRAPH_FAILED;
+            node_to_be_removed.push_back(e->fromNode);
+        }
+        for (sqlite3_int64 nodeId : node_to_be_removed) {
+            node->set.erase(nodeId);
+        }
+        return backtraceNode(node, &node_to_be_removed);
+    }
+
     int executeNode(CypherNode *node) {
-        bool modified = 0;
         // initialize set of node
         if (node->prev == nullptr) { // CypherNode is head
             std::unordered_map<sqlite3_int64, Node*> map = graph->nodeMap->map;
@@ -190,18 +219,21 @@ public:
             return GRAPH_SUCCESS;
         } else if (node->constrainType == DEFINITE) {
             sqlite3_int64 nodeId = std::stoll(node->constrain);
-            if (graph->nodeMap->find(nodeId) != nullptr) {
-                // the set has only 1 element and the only element is nodeId, then there is no need to change anything.
-                if (node->set.size() == 1 && node->set.count(nodeId)) {
-                    return GRAPH_SUCCESS;
-                } else {
-                    node->set.clear();
-                    node->set.insert(nodeId);
-                    return GRAPH_MODIFIED;
-                }
-            } else {
+            if (graph->nodeMap->find(nodeId) == nullptr) {
                 std::cerr << "ERROR: Cannot find this node!" << std:: endl;
                 return GRAPH_FAILED;
+            }
+            std::vector<sqlite3_int64> to_be_removed;
+            for (auto it = node->set.begin(); it != node->set.end(); it++) {
+                if (*it == nodeId) continue;
+                to_be_removed.push_back(*it);
+            }
+            node->set.clear();
+            node->set.insert(nodeId);
+            if (!to_be_removed.empty()) {
+                return backtraceNode(node, &to_be_removed);
+            } else {
+                return GRAPH_SUCCESS;
             }
         } else if (node->constrainType == ATTRIBUTE) {
             std::vector<std::string> key, value;
@@ -283,28 +315,23 @@ public:
                 }
             }
 
-            // if to_be_removed is not empty, then set is modified
-            if (!to_be_removed.empty()) {
-                modified = 1;
-            }
             // remove node in to_be_removed
             for (auto id : to_be_removed) {
                 node->set.erase(id);
             }
+
+            // if to_be_removed is not empty, then start backtrace
+            if (!to_be_removed.empty()) {
+                return backtraceNode(node, &to_be_removed);
+            } else {
+                return GRAPH_SUCCESS;
+            }
         } else {
             return GRAPH_FAILED;
-        }
-
-        if (modified) {
-            return GRAPH_MODIFIED;
-        }
-        else {
-            return GRAPH_SUCCESS;
         }
     }
 
     int executeEdge(CypherNode *edge) {
-        bool modified;
         // initialize set of edge
         if (edge->prev == nullptr) {
             std::cerr << "ERROR: Edge should have an in-node." << std::endl;
@@ -334,12 +361,17 @@ public:
                 std::cerr << "ERROR: Cannot find this edge!" << std::endl;
                 return GRAPH_FAILED;
             }
-            if (edge->set.size() == 1 && edge->set.count(edgeId)) {
-                return GRAPH_SUCCESS;
+            std::vector<sqlite3_int64> to_be_removed;
+            for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
+                if (*it == edgeId) continue;
+                to_be_removed.push_back(*it);
+            }
+            edge->set.clear();
+            edge->set.insert(edgeId);
+            if (!to_be_removed.empty()) {
+                return backtraceEdge(edge, &to_be_removed);
             } else {
-                edge->set.clear();
-                edge->set.insert(edgeId);
-                return GRAPH_MODIFIED;
+                return GRAPH_SUCCESS;
             }
         } else if (edge->constrainType == ATTRIBUTE) {
             std::vector<std::string> key, value;
@@ -419,51 +451,47 @@ public:
                 }
             }
 
-            if (!to_be_removed.empty()) {
-                modified = 1;
-            }
-
+            // remove edge in to_be_removed
             for (auto id: to_be_removed) {
                 edge->set.erase(id);
             }
 
+            // if to_be_removed is not empty, then start backtrace
+            if (!to_be_removed.empty()) {
+                return backtraceEdge(edge, &to_be_removed);
+            } else {
+                return GRAPH_SUCCESS;
+            }
         } else {
             return GRAPH_FAILED;
-        }
-        
-        if (modified) {
-            return GRAPH_MODIFIED;
-        }
-        else {
-            return GRAPH_SUCCESS;
         }
     }
 
     int execute() {
         CypherNode *cur = head;
-        CypherNode *certain = nullptr;
         while (cur != nullptr) {
             if (cur->type == NODE) {
                 int rc = executeNode(cur);
-                if (rc == GRAPH_MODIFIED) {
-                    // backtrace
+                if (rc == GRAPH_SUCCESS) {
+                    return GRAPH_SUCCESS;
+                } else {
+                    return GRAPH_FAILED;
                 }
-                /* 如果限制为一个结点，那么在此之前的所有CypherNode的set都确定
-                  下来，不会再因为后面新的限制条件而发生改变 */
+
                 if (cur->constrainType == DEFINITE) {
-                    certain = cur;
+                    cur->certain = 1;
                 }
-            } else if (cur->type == EDGE) {
+            } else { // EDGE
                 int rc = executeEdge(cur);
-                if (rc == GRAPH_MODIFIED) {
-                    //
+                if (rc == GRAPH_SUCCESS) {
+                    return GRAPH_SUCCESS;
+                } else {
+                    return GRAPH_FAILED;
                 }
+
                 if (cur->constrainType == DEFINITE) {
-                    certain = cur;
+                    cur->certain = 1;
                 }
-            } else {
-                std::cerr << "ERROR: Type error!" << std::endl;
-                return GRAPH_FAILED;
             }
             cur = cur->next;
         }
