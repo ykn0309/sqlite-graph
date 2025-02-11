@@ -12,7 +12,7 @@ A graph extension for SQLite
 
 ## to-do
 
-
+cypher.h new delete
 
 ``` sql
 create table nodes(id integer primary key autoincrement, label text, attribute text);
