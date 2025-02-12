@@ -17,16 +17,9 @@ extern "C" {
 }
 #endif
 
-#define NODE 0
-#define EDGE 1
-#define NOCONSTRAIN 0 // no constrain
-#define DEFINITE 1 // definite label
-#define ATTRIBUTE 2 // attribute constrain
-
 using json = nlohmann::json;
 
-class CypherNode {
-public:
+struct CypherNode {
     int type; // NODE or EDGE
     bool certain;
     int constrainType; // NOCONSTRAIN or DEFINITE or ATTRIBUTE
@@ -43,6 +36,7 @@ class Parser {
 public:
     std::string zCypher; // cypher string
     CypherNode *head; // head of linked list
+    std::unordered_map<std::string, int> var_map; // map variable name to cyphernode index
 
     Parser::Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
 
@@ -60,10 +54,27 @@ public:
     int whichConstrainType(std::string constrain) {
         if (constrain == "") return NOCONSTRAIN;
         else if (constrain[0] == '"') return ATTRIBUTE;
-        else return DEFINITE;
+        else if (constrain[0] >= '0' && constrain[0] <= '9') return DEFINITE;
+        else return VARIABLE;
     }
 
-    // if parses successfully return GRAPH_SUCCESS, else return GRAPH_FAILED
+    // if parses succeessfully, return GRAPH_SUCCESS, else return GRAPH_FAILED
+    int parseVarible() {
+        CypherNode *p = head;
+        int i = 0;
+        while(p != nullptr) {
+            if (p->constrainType == VARIABLE) {
+                p->constrainType == NOCONSTRAIN;
+                std::string constrain = p->constrain;
+                p->constrain = "";
+                var_map[constrain] = i;
+            }
+            p = p->next;
+            i++;
+        }
+    }
+
+    // if parses successfully, return GRAPH_SUCCESS, else return GRAPH_FAILED
     int parse() {
         int zCypher_len = zCypher.length();
         if (zCypher[0] != '(') return GRAPH_FAILED;
@@ -142,7 +153,7 @@ public:
                 return GRAPH_FAILED;
             }
         }
-        return GRAPH_SUCCESS;
+        return parseVarible();
     }
 };
 
@@ -152,21 +163,6 @@ private:
     std::string zCypher;
     Parser *parser;
     CypherNode *head;
-
-public:
-    Cypher::Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
-    
-    Cypher::~Cypher() {
-        delete parser;
-    }
-    
-    int parse() {
-        parser = new Parser(zCypher);
-        int rc = parser->parse();
-        if (rc != GRAPH_SUCCESS) return GRAPH_FAILED;
-        head = parser->head;
-        return GRAPH_SUCCESS;
-    }
 
     int backtraceNode(CypherNode *node, std::vector<sqlite3_int64> *to_be_removed) {
         CypherNode *edge = node->prev;
@@ -270,6 +266,7 @@ public:
                     key.push_back(k);
                     value.push_back(v);
                 } else {
+                    i++;
                     continue;
                 }
             }
@@ -408,6 +405,7 @@ public:
                     key.push_back(k);
                     value.push_back(v);
                 } else {
+                    i++;
                     continue;
                 }
             }
@@ -473,6 +471,36 @@ public:
         }
     }
 
+    CypherNode *findCypherNode(int k) {
+        CypherNode *p = head;
+        int i = 0;
+        while (1) {
+            if (i == k) return p;
+            if (p->next != nullptr) {
+                p = p->next;
+                i++;
+            } else {
+                std::cerr << "ERROR: Null pointer error!" << std::endl;
+                return nullptr;
+            }
+        }
+    }
+
+public:
+    Cypher::Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
+    
+    Cypher::~Cypher() {
+        delete parser;
+    }
+    
+    int parse() {
+        parser = new Parser(zCypher);
+        int rc = parser->parse();
+        if (rc != GRAPH_SUCCESS) return GRAPH_FAILED;
+        head = parser->head;
+        return GRAPH_SUCCESS;
+    }
+
     int execute() {
         CypherNode *cur = head;
         while (cur != nullptr) {
@@ -501,6 +529,13 @@ public:
             }
             cur = cur->next;
         }
+    }
+
+    int query(std::string var, std::set<sqlite3_int64> &set) {
+        int index = parser->var_map[var];
+        CypherNode *cnode = findCypherNode(index);
+        set = cnode->set;
+        return cnode->type;
     }
 };
 

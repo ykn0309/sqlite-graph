@@ -9,12 +9,14 @@ extern "C" {
 #include<string>
 #include<cassert>
 #include<stack>
+#include<vector>
 
 SQLITE_EXTENSION_INIT1
 
 #include"graph_manager.h"
 #include"graph.h"
 #include"algorithm.h"
+#include"cypher.h"
 
 GraphManager &graphManager = GraphManager::getGraphManager();
 
@@ -177,6 +179,57 @@ static void dijkstra(sqlite3_context *context, int argc, sqlite3_value **argv) {
     std::cout << dijkstra.dist[end_id];
 }
 
+static void match(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    // ensure having 2 arguments at least
+    assert(argc > 1);
+
+    // extract arguments
+    std::string zCypher = (const char*)sqlite3_value_text(argv[0]);
+    std::vector<std::string> vars;
+    for (int i = 1; i < argc; i++) {
+        std::string var = (const char*)sqlite3_value_text(argv[i]);
+        vars.push_back(var);
+    }
+
+    // cypher
+    Graph *graph = graphManager.getGraph();
+    Cypher cypher = Cypher(graph, zCypher);
+    cypher.parse();
+    cypher.execute();
+    std::vector<std::vector<std::string>> labels_list;
+    for (std::string var : vars) {
+        std::set<sqlite3_int64> set;
+        std::vector<std::string> labels;
+        int type = cypher.query(var, set);
+        if (type == NODE) {
+            for (auto it = set.begin(); it != set.end(); it++) {
+                std::string label = graph->getNodeLabelById(*it);
+                labels.push_back(label);
+            }
+        } else {
+            for (auto it = set.begin(); it != set.end(); it++) {
+                std::string label = graph->getEdgeLabelById(*it);
+                labels.push_back(label);
+            }
+        }
+        labels_list.push_back(labels);
+    }
+
+    // build output string
+    std::string result;
+    int vars_num = vars.size();
+    for (int i = 0; i < vars_num; i++) {
+        result += vars[i] + ": ";
+        for (std::string label : labels_list[i]) {
+            result += label + ", ";
+        }
+        result.resize(result.size() - 2);
+        result += "\n";
+    }
+
+    sqlite3_result_text(context, result.c_str(), result.length(), SQLITE_TRANSIENT);
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
@@ -202,6 +255,7 @@ int sqlite3_graph_init(
     sqlite3_create_function(db, "bfs", 1, SQLITE_UTF8, 0, bfs, 0, 0);
     sqlite3_create_function(db, "dfs", 1, SQLITE_UTF8, 0, dfs, 0, 0);
     sqlite3_create_function(db, "dijkstra", 3, SQLITE_UTF8, 0, dijkstra, 0, 0);
+    sqlite3_create_function(db, "match", -1, SQLITE_UTF8, 0, match, 0, 0);
     return rc;
 }
 

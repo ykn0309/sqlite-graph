@@ -19,5 +19,11 @@
 #define UPDATE_FROM 3
 #define UPDATE_TO 4
 #define UPDATE_FROM_TO 5
+#define NODE 0
+#define EDGE 1
+#define NOCONSTRAIN 0 // no constrain
+#define DEFINITE 1 // definite label
+#define ATTRIBUTE 2 // attribute constrain
+#define VARIABLE 3
 
 #endif
