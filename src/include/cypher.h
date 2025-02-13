@@ -28,7 +28,7 @@ struct CypherNode {
     CypherNode *prev;
     CypherNode *next;
 
-    CypherNode::CypherNode(int type, int constrainType, std::string constrain): 
+    CypherNode(int type, int constrainType, std::string constrain): 
      type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {}
 };
 
@@ -38,9 +38,9 @@ public:
     CypherNode *head; // head of linked list
     std::unordered_map<std::string, int> var_map; // map variable name to cyphernode index
 
-    Parser::Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
+    Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
 
-    Parser::~Parser() {
+    ~Parser() {
         CypherNode *p = head;
         CypherNode *q;
         while (p != nullptr) {
@@ -58,13 +58,12 @@ public:
         else return VARIABLE;
     }
 
-    // if parses succeessfully, return GRAPH_SUCCESS, else return GRAPH_FAILED
-    int parseVarible() {
+    void parseVarible() {
         CypherNode *p = head;
         int i = 0;
         while(p != nullptr) {
             if (p->constrainType == VARIABLE) {
-                p->constrainType == NOCONSTRAIN;
+                p->constrainType = NOCONSTRAIN;
                 std::string constrain = p->constrain;
                 p->constrain = "";
                 var_map[constrain] = i;
@@ -86,6 +85,7 @@ public:
                 int constrain_type = whichConstrainType(constrain);
                 CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
                 head = cnode;
+                i++;
                 break;
             }
             constrain += zCypher[i];
@@ -126,6 +126,10 @@ public:
                 i++;
                 constrain = "";
                 if (zCypher[i] == '-' && zCypher[i+1] == '>') {
+                    CypherNode *cnode =  new CypherNode(status, NOCONSTRAIN, constrain);
+                    cnode->prev = cur;
+                    cur->next = cnode;
+                    cur = cur->next;
                     i += 2;
                     continue;
                 } else if (zCypher[i] == '[') {
@@ -153,7 +157,8 @@ public:
                 return GRAPH_FAILED;
             }
         }
-        return parseVarible();
+        parseVarible();
+        return GRAPH_SUCCESS;
     }
 };
 
@@ -487,9 +492,9 @@ private:
     }
 
 public:
-    Cypher::Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
+    Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
     
-    Cypher::~Cypher() {
+    ~Cypher() {
         delete parser;
     }
     
@@ -506,9 +511,7 @@ public:
         while (cur != nullptr) {
             if (cur->type == NODE) {
                 int rc = executeNode(cur);
-                if (rc == GRAPH_SUCCESS) {
-                    return GRAPH_SUCCESS;
-                } else {
+                if (rc != GRAPH_SUCCESS) {
                     return GRAPH_FAILED;
                 }
 
@@ -517,9 +520,7 @@ public:
                 }
             } else { // EDGE
                 int rc = executeEdge(cur);
-                if (rc == GRAPH_SUCCESS) {
-                    return GRAPH_SUCCESS;
-                } else {
+                if (rc != GRAPH_SUCCESS) {
                     return GRAPH_FAILED;
                 }
 
@@ -529,6 +530,7 @@ public:
             }
             cur = cur->next;
         }
+        return GRAPH_SUCCESS;
     }
 
     int query(std::string var, std::set<sqlite3_int64> &set) {
@@ -536,7 +538,7 @@ public:
         CypherNode *cnode = findCypherNode(index);
         set = cnode->set;
         return cnode->type;
-    }
+    } 
 };
 
 #endif

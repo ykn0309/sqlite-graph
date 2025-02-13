@@ -1,18 +1,9 @@
-<!--
- * @Author: Kainan Yang ykn0309@qq.com
- * @Date: 2024-10-16 19:36:13
- * @LastEditors: Kainan Yang ykn0309@qq.com
- * @LastEditTime: 2024-12-09 14:58:27
- * @FilePath: /sqlite-graph/README.md
- * @Description: 
- * 
--->
 # sqlite-graph
 A graph extension for SQLite
 
 ## to-do
 
-cypher.h new delete
+
 
 ``` sql
 create table nodes(id integer primary key autoincrement, label text, attribute text);
@@ -61,6 +52,8 @@ select createGraph('nodes', 'edges', 'label', 'attribute', 'label', 'attribute',
 select showAdjTable();
 
 select dijkstra('1', '6', 'weight');
+
+select match1('(1)-->(x)', 'x');
 
 drop table nodes;
 drop table edges;

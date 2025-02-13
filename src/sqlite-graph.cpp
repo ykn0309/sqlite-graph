@@ -255,7 +255,7 @@ int sqlite3_graph_init(
     sqlite3_create_function(db, "bfs", 1, SQLITE_UTF8, 0, bfs, 0, 0);
     sqlite3_create_function(db, "dfs", 1, SQLITE_UTF8, 0, dfs, 0, 0);
     sqlite3_create_function(db, "dijkstra", 3, SQLITE_UTF8, 0, dijkstra, 0, 0);
-    sqlite3_create_function(db, "match", -1, SQLITE_UTF8, 0, match, 0, 0);
+    sqlite3_create_function(db, "match1", -1, SQLITE_UTF8, 0, match, 0, 0);
     return rc;
 }
 
