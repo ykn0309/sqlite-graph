@@ -189,12 +189,28 @@ private:
     int backtraceEdge(CypherNode *edge, std::vector<sqlite3_int64> *to_be_removed) {
         CypherNode *node = edge->prev;
         if (node->certain) return GRAPH_SUCCESS;
+        std::set<sqlite3_int64> node_to_be_removed_set;
         std::vector<sqlite3_int64> node_to_be_removed;
         for (sqlite3_int64 edgeId : *to_be_removed) {
             Edge *e = graph->edgeMap->find(edgeId);
             if (e == nullptr) return GRAPH_FAILED;
-            node_to_be_removed.push_back(e->fromNode);
+            node_to_be_removed_set.insert(e->fromNode);
         }
+        // add back nodes which should not be removed
+        for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
+            Edge *e = graph->edgeMap->find(*it);
+            if (e == nullptr) return GRAPH_FAILED;
+            node_to_be_removed_set.erase(e->fromNode);
+        }
+        CypherNode *next_node = edge->next;
+        for (auto it = next_node->set.begin(); it != next_node->set.end(); it++) {
+            node_to_be_removed_set.insert(*it);
+        }
+        // build vector from set
+        for (auto it = node_to_be_removed_set.begin(); it != node_to_be_removed_set.end(); it++) {
+            node_to_be_removed.push_back(*it);
+        }
+        // remove nodes
         for (sqlite3_int64 nodeId : node_to_be_removed) {
             node->set.erase(nodeId);
         }

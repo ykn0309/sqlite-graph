@@ -55,6 +55,10 @@ select dijkstra('1', '6', 'weight');
 
 select match1('(1)-->(x)', 'x');
 
+select match1('(1)-[]->(x)-[]->(y)', 'x', 'y');
+
+select match1('(x)-->(6)', 'x');
+
 drop table nodes;
 drop table edges;
 ```
