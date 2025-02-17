@@ -321,7 +321,7 @@ private:
                     std::cerr << "ERROR: Cannot find this node!" << std::endl;
                     return GRAPH_FAILED;
                 }
-                std::string attribute = "{" + graph->getNodeAttributeById(nodeId) + "}";
+                std::string attribute = graph->getNodeAttributeById(nodeId);
                 json data = json::parse(attribute);
                 int constrain_num = key.size();
                 for (int i = 0; i < constrain_num; i++) {
@@ -455,7 +455,7 @@ private:
                     std::cerr << "ERROR: Cannot find this edge!" << std::endl;
                     return GRAPH_FAILED;
                 }
-                std::string attribute = "{" + graph->getEdgeAttributeById(edgeId) + "}";
+                std::string attribute = graph->getEdgeAttributeById(edgeId);
                 json data = json::parse(attribute);
                 int constrain_num = key.size();
                 for (int i = 0; i < constrain_num; i++) {

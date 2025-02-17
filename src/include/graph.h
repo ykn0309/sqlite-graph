@@ -502,7 +502,7 @@ std::string Graph::getEdgeAttributeById(sqlite3_int64 id) {
 }
 
 double Graph::getEdgeWeight(sqlite3_int64 id, std::string weight_alias) {
-    std::string attribute = "{" + getEdgeAttributeById(id) + "}";
+    std::string attribute = getEdgeAttributeById(id);
     json data = json::parse(attribute);
     double weight = data[weight_alias];
     return weight;
