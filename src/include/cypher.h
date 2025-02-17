@@ -170,6 +170,21 @@ private:
     CypherNode *head;
 
     int backtraceNode(CypherNode *node, std::vector<sqlite3_int64> *to_be_removed) {
+        if (node->next != nullptr) {
+            for (auto it = node->set.begin(); it != node->set.end(); it++) {
+                Node *n = graph->nodeMap->find(*it);
+                if (n == nullptr) return GRAPH_FAILED;
+                if (n->outNode.empty()) {
+                    to_be_removed->push_back(*it);
+                }
+            }
+        }
+
+        // remove node in to_be_removed
+        for (auto id : *to_be_removed) {
+            node->set.erase(id);
+        }
+
         CypherNode *edge = node->prev;
         if (edge == nullptr || edge->certain) return GRAPH_SUCCESS;
         std::vector<sqlite3_int64> edge_to_be_removed;
@@ -187,6 +202,11 @@ private:
     }
 
     int backtraceEdge(CypherNode *edge, std::vector<sqlite3_int64> *to_be_removed) {
+        // remove edge in to_be_removed
+        for (auto id: *to_be_removed) {
+            edge->set.erase(id);
+        }
+        
         CypherNode *node = edge->prev;
         if (node->certain) return GRAPH_SUCCESS;
         std::set<sqlite3_int64> node_to_be_removed_set;
@@ -272,10 +292,11 @@ private:
                         k += constrain[i];
                         i++;
                     }
+                    i++;
                     while (constrain[i] == ' ' || constrain[i] == ':') { // skip space and ':'
                         i++;
                     }
-                    while (constrain[i] != ',' && constrain[i] != ' ') { //end of v
+                    while (i < constrain_len && constrain[i] != ',' && constrain[i] != ' ') { //end of v
                         if (constrain[i] == '"') { // skip '"'
                             i++;
                             continue;
@@ -337,11 +358,6 @@ private:
                         return GRAPH_FAILED;
                     }
                 }
-            }
-
-            // remove node in to_be_removed
-            for (auto id : to_be_removed) {
-                node->set.erase(id);
             }
 
             // if to_be_removed is not empty, then start backtrace
@@ -474,11 +490,6 @@ private:
                         return GRAPH_FAILED;
                     }
                 }
-            }
-
-            // remove edge in to_be_removed
-            for (auto id: to_be_removed) {
-                edge->set.erase(id);
             }
 
             // if to_be_removed is not empty, then start backtrace

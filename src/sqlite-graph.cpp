@@ -47,6 +47,7 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
     Graph *graph = graphManager.getGraph();
     if (graph == nullptr) {
         sqlite3_result_error(context, "Error: graph cannot be null.\n", -1);
+        return;
     }
     std::vector<Node*> nodeList = graphManager.getGraph()->nodeList();
     std::string result;
@@ -194,8 +195,14 @@ static void match(sqlite3_context *context, int argc, sqlite3_value **argv) {
     // cypher
     Graph *graph = graphManager.getGraph();
     Cypher cypher = Cypher(graph, zCypher);
-    cypher.parse();
-    cypher.execute();
+    if (cypher.parse() == GRAPH_FAILED) {
+        sqlite3_result_error(context, "Error: Cypher parse error.\n", -1);
+        return;
+    }
+    if (cypher.execute() == GRAPH_FAILED) {
+        sqlite3_result_error(context, "Error: Cypher execute error.\n", -1);
+        return;
+    }
     std::vector<std::vector<std::string>> labels_list;
     for (std::string var : vars) {
         std::set<sqlite3_int64> set;
