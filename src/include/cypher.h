@@ -118,6 +118,14 @@ public:
                 while (1) {
                     if (zCypher[i] == ')') {
                         int constrain_type = whichConstrainType(constrain);
+                        if (constrain_type == LABEL) {
+                            std::string label = constrain.substr(1, constrain.length() - 2); // remove '"'
+                            sqlite3_int64 id = graph->getNodeIdByLabel(label);
+                            constrain = std::to_string(id);
+                            constrain_type = DEFINITE;
+                        } else if (constrain_type == ATTRIBUTE) {
+                            constrain = constrain.substr(1, constrain.length() - 2); // remove '{' and '}'
+                        }
                         CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
                         cnode->prev = cur;
                         cur->next = cnode;
@@ -147,6 +155,14 @@ public:
                     while (1) {
                         if (zCypher[i] == ']') {
                             int constrain_type = whichConstrainType(constrain);
+                            if (constrain_type == LABEL) {
+                                std::string label = constrain.substr(1, constrain.length() - 2); // remove '"'
+                                sqlite3_int64 id = graph->getEdgeIdByLabel(label);
+                                constrain = std::to_string(id);
+                                constrain_type = DEFINITE;
+                            } else if (constrain_type == ATTRIBUTE) {
+                                constrain = constrain.substr(1, constrain.length() - 2); // remove '{' and '}'
+                            }
                             CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
                             cnode->prev = cur;
                             cur->next = cnode;
