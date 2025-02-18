@@ -5,3 +5,4 @@
 /graph.so.dSYM
 sqlite3
 !.vscode/launch.json
+*.sql
