@@ -53,7 +53,9 @@ select showAdjTable();
 
 select dijkstra('1', '6', 'weight');
 
-select cypher('("1")-->(x)', 'x');
+select cypher('("0")-->(x)', 'x');
+
+select cypher('("0")-->()-->(x)', 'x');
 
 select cypher('(1)-[]->(x)-[]->(y)', 'x', 'y');
 
@@ -65,7 +67,9 @@ select cypher('(x)-->("color": "yellow")', 'x');
 
 select cypher('(x)-->(y)-->("color": "yellow")', 'x', 'y');
 
-select cypher('(x)-->(8094)', 'x');
+select cypher('(x)-->(y)-->("1000")', 'x', 'y');
+
+select cypher('(x)-->("1000")', 'x');
 
 drop table nodes;
 drop table edges;
