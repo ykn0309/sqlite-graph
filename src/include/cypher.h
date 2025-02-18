@@ -37,8 +37,9 @@ public:
     std::string zCypher; // cypher string
     CypherNode *head; // head of linked list
     std::unordered_map<std::string, int> var_map; // map variable name to cyphernode index
+    Graph *graph;
 
-    Parser(std::string zCypher): zCypher(zCypher), head(nullptr) {}
+    Parser(std::string zCypher, Graph *graph): zCypher(zCypher), graph(graph), head(nullptr) {}
 
     ~Parser() {
         CypherNode *p = head;
@@ -52,9 +53,11 @@ public:
 
     // return type of constrain
     int whichConstrainType(std::string constrain) {
-        if (constrain == "") return NOCONSTRAIN;
-        else if (constrain[0] == '"') return ATTRIBUTE;
-        else if (constrain[0] >= '0' && constrain[0] <= '9') return DEFINITE;
+        int constrain_len = constrain.length();
+        if (constrain == "") return NOCONSTRAIN; // no constrain
+        else if (constrain[0] == '"' && constrain[constrain_len - 1] == '"') return LABEL; // label constrain
+        else if (constrain[0] == '{' && constrain[constrain_len - 1] == '}') return ATTRIBUTE; // attribute constrain
+        else if (constrain[0] >= '0' && constrain[0] <= '9') return DEFINITE; // id constrain
         else return VARIABLE;
     }
 
@@ -83,6 +86,12 @@ public:
         while (1) {
             if (zCypher[i] == ')') {
                 int constrain_type = whichConstrainType(constrain);
+                if (constrain_type == LABEL) {
+                    std::string label = constrain.substr(1, constrain.length() - 2);
+                    sqlite3_int64 id = graph->getNodeIdByLabel(label);
+                    constrain = std::to_string(id);
+                    constrain_type = DEFINITE;
+                }
                 CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
                 head = cnode;
                 i++;
@@ -431,7 +440,7 @@ private:
                         i++;
                     }
                     while (constrain[i] != ',' && constrain[i] != ' ') {
-                        if (constrain[i] = '"') {
+                        if (constrain[i] == '"') {
                             i++;
                             continue;
                         }
@@ -526,7 +535,7 @@ public:
     }
     
     int parse() {
-        parser = new Parser(zCypher);
+        parser = new Parser(zCypher, graph);
         int rc = parser->parse();
         if (rc != GRAPH_SUCCESS) return GRAPH_FAILED;
         head = parser->head;

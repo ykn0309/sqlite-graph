@@ -117,6 +117,7 @@ struct BindingInfo {
 class Graph {
     private:
         friend class Cypher;
+        friend class Parser;
         friend class BFS;
         friend class DFS;
         friend class Dijkstra;

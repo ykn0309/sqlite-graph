@@ -25,5 +25,6 @@
 #define DEFINITE 1 // definite label
 #define ATTRIBUTE 2 // attribute constrain
 #define VARIABLE 3
+#define LABEL 4
 
 #endif

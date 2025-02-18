@@ -53,7 +53,8 @@ static void printAdjTable(sqlite3_context *context, int argc, sqlite3_value **ar
     std::string result;
 
     for (Node* n : nodeList) {
-        result += std::to_string(n->iNode) + ": \n";
+        std::string label = graph->getNodeLabelById(n->iNode);
+        result += label + ": \n";
 
         // In nodes
         std::string line = "  in: ";
