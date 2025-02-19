@@ -57,9 +57,15 @@ select cypher('("0")-->(x)', 'x');
 
 select cypher('("0")-->()-->(x)', 'x');
 
-select cypher('(1)-[]->(x)-[]->(y)', 'x', 'y');
+select cypher('("0")-->()-->()-->(x)', 'x');
 
-select cypher('(x)-->(6)', 'x');
+select cypher('("0")-->()-->()-->()-->(x)', 'x');
+
+select cypher('("0")-->()-->()-->()-->()-->(x)', 'x');
+
+select cypher('("1")-[]->(x)-[]->(y)', 'x', 'y');
+
+select cypher('(x)-->("6")', 'x');
 
 select cypher('("color": "red")-->(x)', 'x');
 
@@ -69,7 +75,13 @@ select cypher('(x)-->(y)-->("color": "yellow")', 'x', 'y');
 
 select cypher('(x)-->(y)-->("1000")', 'x', 'y');
 
+select cypher('(x)-->()-->()-->("1000")', 'x');
+
+select cypher('(x)-->()-->("1000")', 'x');
+
 select cypher('(x)-->("1000")', 'x');
+
+select cypher('(x)-->()', 'x');
 
 drop table nodes;
 drop table edges;
