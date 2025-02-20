@@ -19,17 +19,226 @@ extern "C" {
 
 using json = nlohmann::json;
 
+struct NNode {
+    Graph *graph;
+    sqlite3_int64 iNode; // node id
+    Node *node; // corresponding Node instance of an NNode object
+    std::set<NEdge*> inEdge; // set of in edges
+    std::set<NEdge*> outEdge; // set of out edges
+    CypherNode *cNode; // CypherNode that NNode belongs to
+    bool valid;
+    
+    NNode(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iNode(id), cNode(cNode) {
+        if (cNode->nodeFilter(id) != GRAPH_SUCCESS) {
+            valid = 0;
+        } else {
+            valid = 1;
+            node = graph->nodeMap->find(iNode);
+            CypherNode *nextCNode = cNode->next;
+            if (nextCNode == nullptr);
+            else { // cNode has next CypherNode
+                std::map<sqlite3_int64, NEdge*> *edgeMap = &nextCNode->edgeMap;
+                for (sqlite3_int64 iEdge : node->outEdge) {
+                    NEdge *ne = new NEdge(graph, iEdge, cNode->next);
+                    if (!ne->valid) { // ne doen't meet the constrain
+                        delete ne;
+                    } else { // ne meets the constrain
+                        ne->from_node = this;
+                        (*edgeMap)[iEdge] = ne; // insert ne to edgeMap
+                        outEdge.insert(ne);
+                    }
+                }
+                if (outEdge.empty()) {
+                    valid = 0;
+                }
+            }
+        }
+    }
+};
+
+struct NEdge {
+    Graph *graph;
+    sqlite3_int64 iEdge; // edge id
+    Edge *edge; // corresponding Edge instance of an Edge object
+    NNode *from_node; // from node
+    NNode *to_node; // to node
+    CypherNode *cNode; // CypherNode that NEdge belongs to
+    bool valid;
+
+    NEdge(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iEdge(id), cNode(cNode) {
+        if (cNode->edgeFilter(id) != GRAPH_SUCCESS) {
+            valid = 0;
+        } else {
+            valid = 1;
+            edge = graph->edgeMap->find(iEdge);
+            CypherNode *nextCNode = cNode->next;
+            std::map<sqlite3_int64, NNode*> *nodeMap = &nextCNode->nodeMap;
+            sqlite3_int64 iNode = edge->toNode;
+            if (nodeMap->find(iNode) != nodeMap->end()) { // NNode instance of iNode aready exists
+                NNode *nn = (*nodeMap)[iNode];
+                nn->inEdge.insert(this);
+                to_node = nn;
+            } else { // NNode instace of iNode doesn't exists
+                NNode *nn = new NNode(graph, iNode, cNode->next);
+                if (!nn->valid) {
+                    delete nn;
+                    valid = 0;
+                } else {
+                    nn->inEdge.insert(this);
+                    (*nodeMap)[iNode] = nn;
+                    to_node = nn;
+                }
+            }
+        }
+    }
+};
+
 struct CypherNode {
     int type; // NODE or EDGE
     bool certain;
     int constrainType; // NOCONSTRAIN or DEFINITE or ATTRIBUTE
     std::string constrain;
-    std::set<sqlite3_int64> set; // node set or edge set
+    std::vector<std::string>key; // ATTRIBUTE constrain type, key list of json
+    std::vector<std::string>value; // ATTRIBUTE constrain type, value list of json
+    int key_num;
+    union
+    {
+        std::map<sqlite3_int64, NNode*> nodeMap;
+        std::map<sqlite3_int64, NEdge*> edgeMap;
+    };
     CypherNode *prev;
     CypherNode *next;
+    Graph *graph;
 
     CypherNode(int type, int constrainType, std::string constrain): 
-     type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {}
+     type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {
+        if (constrainType == ATTRIBUTE) {
+            int constrain_len = constrain.length();
+            int i = 0;
+
+            while (i < constrain_len) {
+                if (constrain[i] == '"') { // begin of a new k-v pair
+                    i++;
+                    std::string k, v;
+                    while (constrain[i] != '"') { // end of k
+                        k += constrain[i];
+                        i++;
+                    }
+                    i++;
+                    while (constrain[i] == ' ' || constrain[i] == ':') { // skip space and ':'
+                        i++;
+                    }
+                    while (i < constrain_len && constrain[i] != ',' && constrain[i] != ' ') { //end of v
+                        if (constrain[i] == '"') { // skip '"'
+                            i++;
+                            continue;
+                        }
+                        v += constrain[i];
+                        i++;
+                    }
+
+                    key.push_back(k);
+                    value.push_back(v);
+                } else {
+                    i++;
+                    continue;
+                }
+            }
+            key_num = key.size();
+        } else {
+            key_num = -1;
+        }
+     }
+    
+     // judge whether a node meets the constrain
+    int nodeFilter(sqlite3_int64 nodeId) {
+        if (constrainType == NOCONSTRAIN) {
+            return GRAPH_SUCCESS;
+        } else if (constrainType == DEFINITE) {
+            sqlite3_int64 id = std::stoll(constrain);
+            int rc = (id == nodeId) ? GRAPH_SUCCESS : GRAPH_FAILED;
+            return rc;
+        } else { // ATTRIBUTE
+            std::string attribute = graph->getNodeAttributeById(nodeId);
+            json data = json::parse(attribute);
+            for (int i = 0; i < key_num; i++) {
+                std::string k = key[i];
+                std::string v = value[i];
+                if (!data.contains(k)) {
+                    return GRAPH_FAILED;
+                }
+                auto v_type = data[k].type();
+                if (v_type == json::value_t::string) {
+                    std::string v_str = data[k];
+                    if (v_str != v) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else if (v_type == json::value_t::number_integer) {
+                    int v_int = data[k];
+                    if (v_int != std::stoi(v)) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else if (v_type == json::value_t::number_float) {
+                    double v_float = data[k];
+                    if (v_float != std::stod(v)) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else {
+                    std::cerr << "ERROR: Incorrect type of value." << std::endl;
+                    return GRAPH_FAILED;
+                }
+            }
+            return GRAPH_SUCCESS;
+        }
+    }
+
+    // judge whether a edge meets the constrain
+    int edgeFilter(sqlite3_int64 edgeId) {
+        if (constrainType == NOCONSTRAIN) {
+            return GRAPH_SUCCESS;
+        } else if (constrainType == DEFINITE) {
+            sqlite3_int64 id = std::stoll(constrain);
+            int rc = (id == edgeId) ? GRAPH_SUCCESS : GRAPH_FAILED;
+            return rc;
+        } else { // ATTRIBUTE
+            std::string attribute = graph->getNodeAttributeById(edgeId);
+            json data = json::parse(attribute);
+            for (int i = 0; i < key_num; i++) {
+                std::string k = key[i];
+                std::string v = value[i];
+                if (!data.contains(k)) {
+                    return GRAPH_FAILED;
+                }
+                auto v_type = data[k].type();
+                if (v_type == json::value_t::string) {
+                    std::string v_str = data[k];
+                    if (v_str != v) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else if (v_type == json::value_t::number_integer) {
+                    int v_int = data[k];
+                    if (v_int != std::stoi(v)) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else if (v_type == json::value_t::number_float) {
+                    double v_float = data[k];
+                    if (v_float != std::stod(v)) {
+                        return GRAPH_FAILED;
+                        break;
+                    }
+                } else {
+                    std::cerr << "ERROR: Incorrect type of value." << std::endl;
+                    return GRAPH_FAILED;
+                }
+            }
+            return GRAPH_SUCCESS;
+        }
+    }
 };
 
 class Parser {
@@ -196,337 +405,6 @@ private:
     Parser *parser;
     CypherNode *head;
 
-    int backtraceNode(CypherNode *node, std::vector<sqlite3_int64> *to_be_removed) {
-        // remove node that does't have out-node
-        if (node->next != nullptr) {
-            for (auto it = node->set.begin(); it != node->set.end(); it++) {
-                Node *n = graph->nodeMap->find(*it);
-                if (n == nullptr) return GRAPH_FAILED;
-                if (n->outNode.empty()) {
-                    to_be_removed->push_back(*it);
-                }
-            }
-        }
-
-        // remove node in to_be_removed
-        for (auto id : *to_be_removed) {
-            node->set.erase(id);
-        }
-
-        CypherNode *edge = node->prev;
-        if (edge == nullptr || edge->certain) return GRAPH_SUCCESS;
-        std::vector<sqlite3_int64> edge_to_be_removed;
-        for (sqlite3_int64 nodeId : *to_be_removed) {
-            Node *n = graph->nodeMap->find(nodeId);
-            if (n == nullptr) return GRAPH_FAILED;
-            for (auto it = n->inEdge.begin(); it != n->inEdge.end(); it++) {
-                edge_to_be_removed.push_back(*it);
-            }
-        }
-        return backtraceEdge(edge, &edge_to_be_removed);
-    }
-
-    int backtraceEdge(CypherNode *edge, std::vector<sqlite3_int64> *to_be_removed) {
-        // remove edge in to_be_removed
-        for (auto id: *to_be_removed) {
-            edge->set.erase(id);
-        }
-        
-        CypherNode *node = edge->prev;
-        if (node->certain) return GRAPH_SUCCESS;
-        std::set<sqlite3_int64> node_to_be_removed_set;
-        std::vector<sqlite3_int64> node_to_be_removed;
-        for (sqlite3_int64 edgeId : *to_be_removed) {
-            Edge *e = graph->edgeMap->find(edgeId);
-            if (e == nullptr) return GRAPH_FAILED;
-            node_to_be_removed_set.insert(e->fromNode);
-        }
-        // remove nodes that are same with nodes in next node set 
-        CypherNode *next_node = edge->next;
-        for (auto it = next_node->set.begin(); it != next_node->set.end(); it++) {
-            node_to_be_removed_set.insert(*it);
-        }
-        // add back nodes which should not be removed
-        for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
-            Edge *e = graph->edgeMap->find(*it);
-            if (e == nullptr) return GRAPH_FAILED;
-            node_to_be_removed_set.erase(e->fromNode);
-        }
-
-        // build vector from set
-        for (auto it = node_to_be_removed_set.begin(); it != node_to_be_removed_set.end(); it++) {
-            node_to_be_removed.push_back(*it);
-        }
-        return backtraceNode(node, &node_to_be_removed);
-    }
-
-    int executeNode(CypherNode *node) {
-        // initialize set of node
-        if (node->prev == nullptr) { // CypherNode is head
-            std::unordered_map<sqlite3_int64, Node*> map = graph->nodeMap->map;
-            for(auto it = map.begin(); it != map.end(); it++) {
-                node->set.insert(it->first);
-            }
-        } else { // previous CypherNode is an edge
-            CypherNode *edge = node->prev;
-            for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
-                sqlite3_int64 edgeId = *it;
-                Edge *e = graph->edgeMap->find(edgeId);
-                if (e == nullptr) {
-                    std::cerr << "ERROR: Cannot find this edge!" << std::endl;
-                    return GRAPH_FAILED;
-                }
-                node->set.insert(e->toNode);
-            }
-        }
-        
-        // apply constrain to set of node
-        if (node->constrainType == NOCONSTRAIN) {
-            return GRAPH_SUCCESS;
-        } else if (node->constrainType == DEFINITE) {
-            sqlite3_int64 nodeId = std::stoll(node->constrain);
-            if (graph->nodeMap->find(nodeId) == nullptr) {
-                std::cerr << "ERROR: Cannot find this node!" << std:: endl;
-                return GRAPH_FAILED;
-            }
-            std::vector<sqlite3_int64> to_be_removed;
-            for (auto it = node->set.begin(); it != node->set.end(); it++) {
-                if (*it == nodeId) continue;
-                to_be_removed.push_back(*it);
-            }
-            node->set.clear();
-            node->set.insert(nodeId);
-            if (!to_be_removed.empty()) {
-                return backtraceNode(node, &to_be_removed);
-            } else {
-                return GRAPH_SUCCESS;
-            }
-        } else if (node->constrainType == ATTRIBUTE) {
-            std::vector<std::string> key, value;
-            std::string constrain = node->constrain;
-            int constrain_len = constrain.length();
-            int i = 0;
-
-            while (i < constrain_len) {
-                if (constrain[i] == '"') { // begin of a new k-v pair
-                    i++;
-                    std::string k, v;
-                    while (constrain[i] != '"') { // end of k
-                        k += constrain[i];
-                        i++;
-                    }
-                    i++;
-                    while (constrain[i] == ' ' || constrain[i] == ':') { // skip space and ':'
-                        i++;
-                    }
-                    while (i < constrain_len && constrain[i] != ',' && constrain[i] != ' ') { //end of v
-                        if (constrain[i] == '"') { // skip '"'
-                            i++;
-                            continue;
-                        }
-                        v += constrain[i];
-                        i++;
-                    }
-
-                    key.push_back(k);
-                    value.push_back(v);
-                } else {
-                    i++;
-                    continue;
-                }
-            }
-
-            std::vector<sqlite3_int64> to_be_removed;
-            for (auto it = node->set.begin(); it != node->set.end(); it++) {
-                sqlite3_int64 nodeId = *it;
-                Node *n = graph->nodeMap->find(nodeId);
-                if (n == nullptr) {
-                    std::cerr << "ERROR: Cannot find this node!" << std::endl;
-                    return GRAPH_FAILED;
-                }
-                std::string attribute = graph->getNodeAttributeById(nodeId);
-                json data = json::parse(attribute);
-                int constrain_num = key.size();
-                for (int i = 0; i < constrain_num; i++) {
-                    std::string k = key[i];
-                    std::string v = value[i];
-                    // ensure attribute of node has the key
-                    if (!data.contains(k)) {
-                        std::cerr << "ERROR: Cannot this key!" << std::endl;
-                        return GRAPH_FAILED;
-                    }
-
-                    // add nodes that do not meet the constrains to to_be_removed list
-                    auto v_type = data[k].type();
-                    if (v_type == json::value_t::string) {
-                        std::string v_str = data[k];
-                        if (v_str != v) {
-                            to_be_removed.push_back(nodeId);
-                            break;
-                        }
-                    } else if (v_type == json::value_t::number_integer) {
-                        int v_int = data[k];
-                        if (v_int != std::stoi(v)) {
-                            to_be_removed.push_back(nodeId);
-                            break;
-                        }
-                    } else if (v_type == json::value_t::number_float) {
-                        double v_float = data[k];
-                        if (v_float != std::stod(v)) {
-                            to_be_removed.push_back(nodeId);
-                            break;
-                        }
-                    } else {
-                        std::cerr << "ERROR: Incorrect type of value." << std::endl;
-                        return GRAPH_FAILED;
-                    }
-                }
-            }
-
-            // if to_be_removed is not empty, then start backtrace
-            if (!to_be_removed.empty()) {
-                return backtraceNode(node, &to_be_removed);
-            } else {
-                return GRAPH_SUCCESS;
-            }
-        } else {
-            return GRAPH_FAILED;
-        }
-    }
-
-    int executeEdge(CypherNode *edge) {
-        // initialize set of edge
-        if (edge->prev == nullptr) {
-            std::cerr << "ERROR: Edge should have an in-node." << std::endl;
-            return GRAPH_FAILED;
-        } else {
-            CypherNode *node = edge->prev;
-            for (auto it = node->set.begin(); it != node->set.end(); it++) {
-                sqlite3_int64 nodeId = *it;
-                Node *n = graph->nodeMap->find(nodeId);
-                if (n == nullptr) {
-                    std::cerr << "ERROR: Cannot find this node!" << std::endl;
-                    return GRAPH_FAILED;
-                }
-                std::set<sqlite3_int64> *edge_set = &n->outEdge;
-                for (auto e = edge_set->begin(); e != edge_set->end(); e++) {
-                    edge->set.insert(*e);
-                }
-            }
-        }
-
-        // apply constrain to set of edge
-        if (edge->constrainType == NOCONSTRAIN) {
-            return GRAPH_SUCCESS;
-        } else if (edge->constrainType == DEFINITE) {
-            sqlite3_int64 edgeId = std::stoll(edge->constrain);
-            if (graph->edgeMap->find(edgeId) == nullptr) {
-                std::cerr << "ERROR: Cannot find this edge!" << std::endl;
-                return GRAPH_FAILED;
-            }
-            std::vector<sqlite3_int64> to_be_removed;
-            for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
-                if (*it == edgeId) continue;
-                to_be_removed.push_back(*it);
-            }
-            edge->set.clear();
-            edge->set.insert(edgeId);
-            if (!to_be_removed.empty()) {
-                return backtraceEdge(edge, &to_be_removed);
-            } else {
-                return GRAPH_SUCCESS;
-            }
-        } else if (edge->constrainType == ATTRIBUTE) {
-            std::vector<std::string> key, value;
-            std::string constrain = edge->constrain;
-            int constrain_len = constrain.length();
-            int i = 0;
-
-            while (i < constrain_len) {
-                if (constrain[i] == '"') {
-                    i++;
-                    std::string k, v;
-                    while (constrain[i] != '"') {
-                        k += constrain[i];
-                        i++;
-                    }
-                    i++;
-                    while (constrain[i] == ' ' || constrain[i] ==':') {
-                        i++;
-                    }
-                    while (i < constrain_len && constrain[i] != ',' && constrain[i] != ' ') {
-                        if (constrain[i] == '"') {
-                            i++;
-                            continue;
-                        }
-                        v += constrain[i];
-                        i++;
-                    }
-
-                    key.push_back(k);
-                    value.push_back(v);
-                } else {
-                    i++;
-                    continue;
-                }
-            }
-
-            std::vector<sqlite3_int64> to_be_removed;
-            for (auto it = edge->set.begin(); it != edge->set.end(); it++) {
-                sqlite3_int64 edgeId = *it;
-                Edge *e = graph->edgeMap->find(edgeId);
-                if (e == nullptr) {
-                    std::cerr << "ERROR: Cannot find this edge!" << std::endl;
-                    return GRAPH_FAILED;
-                }
-                std::string attribute = graph->getEdgeAttributeById(edgeId);
-                json data = json::parse(attribute);
-                int constrain_num = key.size();
-                for (int i = 0; i < constrain_num; i++) {
-                    std::string k = key[i];
-                    std::string v = value[i];
-                    if (!data.contains(k)) {
-                        std::cerr << "ERROR: Cannot find this key!" << std::endl;
-                        return GRAPH_FAILED;
-                    }
-
-                    auto v_type = data[k].type();
-                    if (v_type == json::value_t::string) {
-                        std::string v_str = data[k];
-                        if (v_str != v) {
-                            to_be_removed.push_back(edgeId);
-                            break;
-                        }
-                    } else if (v_type == json::value_t::number_integer) {
-                        int v_int = data[k];
-                        if (v_int != stoi(v)) {
-                            to_be_removed.push_back(edgeId);
-                            break;
-                        }
-                    } else if (v_type == json::value_t::number_float) {
-                        double v_float = data[k];
-                        if (v_float != std::stod(v)) {
-                            to_be_removed.push_back(edgeId);
-                            break;
-                        }
-                    } else {
-                        std::cerr << "ERROR: Incorrect type of value." << std::endl;
-                        return GRAPH_FAILED;
-                    }
-                }
-            }
-
-            // if to_be_removed is not empty, then start backtrace
-            if (!to_be_removed.empty()) {
-                return backtraceEdge(edge, &to_be_removed);
-            } else {
-                return GRAPH_SUCCESS;
-            }
-        } else {
-            return GRAPH_FAILED;
-        }
-    }
-
     CypherNode *findCypherNode(int k) {
         CypherNode *p = head;
         int i = 0;
@@ -558,38 +436,23 @@ public:
     }
 
     int execute() {
-        CypherNode *cur = head;
-        while (cur != nullptr) {
-            if (cur->type == NODE) {
-                int rc = executeNode(cur);
-                if (rc != GRAPH_SUCCESS) {
-                    return GRAPH_FAILED;
-                }
-
-                if (cur->constrainType == DEFINITE) {
-                    cur->certain = 1;
-                }
-            } else { // EDGE
-                int rc = executeEdge(cur);
-                if (rc != GRAPH_SUCCESS) {
-                    return GRAPH_FAILED;
-                }
-
-                if (cur->constrainType == DEFINITE) {
-                    cur->certain = 1;
-                }
-            }
-            cur = cur->next;
-        }
-        return GRAPH_SUCCESS;
+        
     }
 
     int query(std::string var, std::set<sqlite3_int64> &set) {
         int index = parser->var_map[var];
         CypherNode *cnode = findCypherNode(index);
-        set = cnode->set;
+        if (cnode->type == NODE) {
+            for (auto it = cnode->nodeMap.begin(); it != cnode->nodeMap.end(); it++) {
+                set.insert(it->first);
+            }
+        } else {
+            for (auto it = cnode->edgeMap.begin(); it != cnode->edgeMap.end(); it++) {
+                set.insert(it->first);
+            }
+        }
         return cnode->type;
-    } 
+    }
 };
 
 #endif

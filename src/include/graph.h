@@ -118,6 +118,8 @@ class Graph {
     private:
         friend class Cypher;
         friend class Parser;
+        friend class NNode;
+        friend class NEdge;
         friend class BFS;
         friend class DFS;
         friend class Dijkstra;
