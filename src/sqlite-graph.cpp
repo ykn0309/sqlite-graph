@@ -200,10 +200,7 @@ static void match(sqlite3_context *context, int argc, sqlite3_value **argv) {
         sqlite3_result_error(context, "Error: Cypher parse error.\n", -1);
         return;
     }
-    if (cypher.execute() == GRAPH_FAILED) {
-        sqlite3_result_error(context, "Error: Cypher execute error.\n", -1);
-        return;
-    }
+    cypher.execute();
     std::vector<std::vector<std::string>> labels_list;
     for (std::string var : vars) {
         std::set<sqlite3_int64> set;

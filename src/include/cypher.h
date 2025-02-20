@@ -19,6 +19,10 @@ extern "C" {
 
 using json = nlohmann::json;
 
+struct NNode;
+struct NEdge;
+struct CypherNode;
+
 struct NNode {
     Graph *graph;
     sqlite3_int64 iNode; // node id
@@ -28,32 +32,7 @@ struct NNode {
     CypherNode *cNode; // CypherNode that NNode belongs to
     bool valid;
     
-    NNode(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iNode(id), cNode(cNode) {
-        if (cNode->nodeFilter(id) != GRAPH_SUCCESS) {
-            valid = 0;
-        } else {
-            valid = 1;
-            node = graph->nodeMap->find(iNode);
-            CypherNode *nextCNode = cNode->next;
-            if (nextCNode == nullptr);
-            else { // cNode has next CypherNode
-                std::map<sqlite3_int64, NEdge*> *edgeMap = &nextCNode->edgeMap;
-                for (sqlite3_int64 iEdge : node->outEdge) {
-                    NEdge *ne = new NEdge(graph, iEdge, cNode->next);
-                    if (!ne->valid) { // ne doen't meet the constrain
-                        delete ne;
-                    } else { // ne meets the constrain
-                        ne->from_node = this;
-                        (*edgeMap)[iEdge] = ne; // insert ne to edgeMap
-                        outEdge.insert(ne);
-                    }
-                }
-                if (outEdge.empty()) {
-                    valid = 0;
-                }
-            }
-        }
-    }
+    NNode(Graph *graph, sqlite3_int64 id, CypherNode *cNode);
 };
 
 struct NEdge {
@@ -65,33 +44,9 @@ struct NEdge {
     CypherNode *cNode; // CypherNode that NEdge belongs to
     bool valid;
 
-    NEdge(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iEdge(id), cNode(cNode) {
-        if (cNode->edgeFilter(id) != GRAPH_SUCCESS) {
-            valid = 0;
-        } else {
-            valid = 1;
-            edge = graph->edgeMap->find(iEdge);
-            CypherNode *nextCNode = cNode->next;
-            std::map<sqlite3_int64, NNode*> *nodeMap = &nextCNode->nodeMap;
-            sqlite3_int64 iNode = edge->toNode;
-            if (nodeMap->find(iNode) != nodeMap->end()) { // NNode instance of iNode aready exists
-                NNode *nn = (*nodeMap)[iNode];
-                nn->inEdge.insert(this);
-                to_node = nn;
-            } else { // NNode instace of iNode doesn't exists
-                NNode *nn = new NNode(graph, iNode, cNode->next);
-                if (!nn->valid) {
-                    delete nn;
-                    valid = 0;
-                } else {
-                    nn->inEdge.insert(this);
-                    (*nodeMap)[iNode] = nn;
-                    to_node = nn;
-                }
-            }
-        }
-    }
+    NEdge(Graph *graph, sqlite3_int64 id, CypherNode *cNode);
 };
+
 
 struct CypherNode {
     int type; // NODE or EDGE
@@ -101,17 +56,16 @@ struct CypherNode {
     std::vector<std::string>key; // ATTRIBUTE constrain type, key list of json
     std::vector<std::string>value; // ATTRIBUTE constrain type, value list of json
     int key_num;
-    union
-    {
-        std::map<sqlite3_int64, NNode*> nodeMap;
-        std::map<sqlite3_int64, NEdge*> edgeMap;
-    };
+    std::unordered_map<sqlite3_int64, NNode*> *nodeMap;
+    std::unordered_map<sqlite3_int64, NEdge*> *edgeMap;
     CypherNode *prev;
     CypherNode *next;
     Graph *graph;
 
     CypherNode(int type, int constrainType, std::string constrain): 
      type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {
+        nodeMap = new std::unordered_map<sqlite3_int64, NNode*>;
+        edgeMap = new std::unordered_map<sqlite3_int64, NEdge*>;
         if (constrainType == ATTRIBUTE) {
             int constrain_len = constrain.length();
             int i = 0;
@@ -148,9 +102,22 @@ struct CypherNode {
         } else {
             key_num = -1;
         }
-     }
+    }
     
-     // judge whether a node meets the constrain
+    ~CypherNode() {
+        for (auto it = nodeMap->begin(); it != nodeMap->end(); it++) {
+            NNode *nnode = it->second;
+            delete nnode;
+        }
+        for (auto it = edgeMap->begin(); it != edgeMap->end(); it++) {
+            NEdge *nedge = it->second;
+            delete nedge;
+        }
+        delete nodeMap;
+        delete edgeMap;
+    }
+    
+    // judge whether a node meets the constrain
     int nodeFilter(sqlite3_int64 nodeId) {
         if (constrainType == NOCONSTRAIN) {
             return GRAPH_SUCCESS;
@@ -240,6 +207,61 @@ struct CypherNode {
         }
     }
 };
+
+
+NNode::NNode(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iNode(id), cNode(cNode) {
+    if (cNode->nodeFilter(id) != GRAPH_SUCCESS) {
+        valid = 0;
+    } else {
+        valid = 1;
+        node = graph->nodeMap->find(iNode);
+        CypherNode *nextCNode = cNode->next;
+        if (nextCNode == nullptr);
+        else { // cNode has next CypherNode
+            std::unordered_map<sqlite3_int64, NEdge*> *edgeMap = nextCNode->edgeMap;
+            for (sqlite3_int64 iEdge : node->outEdge) {
+                NEdge *ne = new NEdge(graph, iEdge, cNode->next);
+                if (!ne->valid) { // ne doen't meet the constrain
+                    delete ne;
+                } else { // ne meets the constrain
+                    ne->from_node = this;
+                    (*edgeMap)[iEdge] = ne; // insert ne to edgeMap
+                    outEdge.insert(ne);
+                }
+            }
+            if (outEdge.empty()) {
+                valid = 0;
+            }
+        }
+    }
+}
+
+NEdge::NEdge(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), iEdge(id), cNode(cNode) {
+    if (cNode->edgeFilter(id) != GRAPH_SUCCESS) {
+        valid = 0;
+    } else {
+        valid = 1;
+        edge = graph->edgeMap->find(iEdge);
+        CypherNode *nextCNode = cNode->next;
+        std::unordered_map<sqlite3_int64, NNode*> *nodeMap = nextCNode->nodeMap;
+        sqlite3_int64 iNode = edge->toNode;
+        if (nodeMap->find(iNode) != nodeMap->end()) { // NNode instance of iNode aready exists
+            NNode *nn = (*nodeMap)[iNode];
+            nn->inEdge.insert(this);
+            to_node = nn;
+        } else { // NNode instace of iNode doesn't exists
+            NNode *nn = new NNode(graph, iNode, cNode->next);
+            if (!nn->valid) {
+                delete nn;
+                valid = 0;
+            } else {
+                nn->inEdge.insert(this);
+                (*nodeMap)[iNode] = nn;
+                to_node = nn;
+            }
+        }
+    }
+}
 
 class Parser {
 public:
@@ -435,19 +457,27 @@ public:
         return GRAPH_SUCCESS;
     }
 
-    int execute() {
-        
+    void execute() {
+        std::unordered_map<sqlite3_int64, Node*> *map = &graph->nodeMap->map;
+        for (auto it = map->begin(); it != map->end(); it++) {
+            NNode *nn = new NNode(graph, it->first, head);
+            if (!nn->valid) {
+                delete nn;
+            } else {
+                (*head->nodeMap)[it->first] = nn;
+            }
+        }
     }
 
     int query(std::string var, std::set<sqlite3_int64> &set) {
         int index = parser->var_map[var];
         CypherNode *cnode = findCypherNode(index);
         if (cnode->type == NODE) {
-            for (auto it = cnode->nodeMap.begin(); it != cnode->nodeMap.end(); it++) {
+            for (auto it = cnode->nodeMap->begin(); it != cnode->nodeMap->end(); it++) {
                 set.insert(it->first);
             }
         } else {
-            for (auto it = cnode->edgeMap.begin(); it != cnode->edgeMap.end(); it++) {
+            for (auto it = cnode->edgeMap->begin(); it != cnode->edgeMap->end(); it++) {
                 set.insert(it->first);
             }
         }
