@@ -62,8 +62,8 @@ struct CypherNode {
     CypherNode *next;
     Graph *graph;
 
-    CypherNode(int type, int constrainType, std::string constrain): 
-     type(type), certain(0), constrainType(constrainType), constrain(constrain), prev(nullptr), next(nullptr) {
+    CypherNode(int type, int constrainType, std::string constrain, Graph *graph): 
+     type(type), certain(0), constrainType(constrainType), constrain(constrain), graph(graph), prev(nullptr), next(nullptr) {
         nodeMap = new std::unordered_map<sqlite3_int64, NNode*>;
         edgeMap = new std::unordered_map<sqlite3_int64, NEdge*>;
         if (constrainType == ATTRIBUTE) {
@@ -325,7 +325,7 @@ public:
                 } else if (constrain_type == ATTRIBUTE) {
                     constrain = constrain.substr(1, constrain.length() - 2); // remove '{' and '}'
                 }
-                CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                CypherNode *cnode = new CypherNode(status, constrain_type, constrain, graph);
                 head = cnode;
                 i++;
                 break;
@@ -357,7 +357,7 @@ public:
                         } else if (constrain_type == ATTRIBUTE) {
                             constrain = constrain.substr(1, constrain.length() - 2); // remove '{' and '}'
                         }
-                        CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                        CypherNode *cnode = new CypherNode(status, constrain_type, constrain, graph);
                         cnode->prev = cur;
                         cur->next = cnode;
                         cur = cur->next;
@@ -376,7 +376,7 @@ public:
                 i++;
                 constrain = "";
                 if (zCypher[i] == '-' && zCypher[i+1] == '>') {
-                    CypherNode *cnode =  new CypherNode(status, NOCONSTRAIN, constrain);
+                    CypherNode *cnode =  new CypherNode(status, NOCONSTRAIN, constrain, graph);
                     cnode->prev = cur;
                     cur->next = cnode;
                     cur = cur->next;
@@ -394,7 +394,7 @@ public:
                             } else if (constrain_type == ATTRIBUTE) {
                                 constrain = constrain.substr(1, constrain.length() - 2); // remove '{' and '}'
                             }
-                            CypherNode *cnode = new CypherNode(status, constrain_type, constrain);
+                            CypherNode *cnode = new CypherNode(status, constrain_type, constrain, graph);
                             cnode->prev = cur;
                             cur->next = cnode;
                             cur = cur->next;
