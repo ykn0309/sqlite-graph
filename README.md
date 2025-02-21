@@ -75,6 +75,8 @@ select cypher('(x)-->(y)-->({"color": "yellow"})', 'x', 'y');
 
 select cypher('(x)-->(y)-->("1000")', 'x', 'y');
 
+select cypher('(x)-->()-->()-->()-->()-->("1000")', 'x');
+
 select cypher('(x)-->()-->()-->("1000")', 'x');
 
 select cypher('(x)-->()-->("1000")', 'x');
@@ -82,7 +84,4 @@ select cypher('(x)-->()-->("1000")', 'x');
 select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
-
-MATCH (n:Node {id: 0})-[:CONNECTED_TO]->(neighbor)
-RETURN COUNT(DISTINCT neighbor) AS neighbor_count;
 ```

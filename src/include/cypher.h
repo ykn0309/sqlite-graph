@@ -61,6 +61,7 @@ struct CypherNode {
     CypherNode *prev;
     CypherNode *next;
     Graph *graph;
+    std::set<sqlite3_int64> removed_nodes; // nodes that don't meet the constrain will be put into this set to avoid another constrain judge
 
     CypherNode(int type, int constrainType, std::string constrain, Graph *graph): 
      type(type), certain(0), constrainType(constrainType), constrain(constrain), graph(graph), prev(nullptr), next(nullptr) {
@@ -249,9 +250,12 @@ NEdge::NEdge(Graph *graph, sqlite3_int64 id, CypherNode *cNode): graph(graph), i
             NNode *nn = (*nodeMap)[iNode];
             nn->inEdge.insert(this);
             to_node = nn;
+        } else if (nextCNode->removed_nodes.find(iNode) != nextCNode->removed_nodes.end()) {
+            valid = 0;
         } else { // NNode instace of iNode doesn't exists
-            NNode *nn = new NNode(graph, iNode, cNode->next);
+            NNode *nn = new NNode(graph, iNode, nextCNode);
             if (!nn->valid) {
+                nextCNode->removed_nodes.insert(iNode);
                 delete nn;
                 valid = 0;
             } else {
