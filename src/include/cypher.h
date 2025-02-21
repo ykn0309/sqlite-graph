@@ -489,4 +489,72 @@ public:
     }
 };
 
+struct CypherVtab {
+    sqlite3_vtab base;
+    Cypher *cypher;
+};
+
+struct CypherVtabCursor {
+    sqlite3_vtab_cursor base;
+    sqlite3_int64 iRowid;
+};
+
+static int cyphervtabConnect(sqlite3 *db,
+    void *pAux,
+    int argc, const char *const*argv,
+    sqlite3_vtab **ppVtab,
+    char **pzErr
+) {
+    CypherVtab *pNew;
+    int rc;
+    std::string createSQL;
+    rc = sqlite3_declare_vtab(db, createSQL.c_str());
+    if (rc == SQLITE_OK) {
+        pNew = new(std::nothrow) CypherVtab();
+        *ppVtab = (sqlite3_vtab*)pNew;
+        if (pNew == nullptr) return SQLITE_NOMEM;
+    }
+    return rc;
+}
+
+static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {
+    CypherVtab *p = (CypherVtab*)pVtab;
+    delete p;
+    return SQLITE_OK;
+}
+
+static int cyphervtabOpen(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor) {
+    CypherVtabCursor *pCur;
+    pCur = new(std::nothrow) CypherVtabCursor();
+    if (pCur == nullptr) return SQLITE_NOMEM;
+    *ppCursor = &pCur->base;
+    return SQLITE_OK;
+}
+
+static int cyphervtabClose(sqlite3_vtab_cursor *cur) {
+    CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
+    delete pCur;
+    return SQLITE_OK;
+}
+
+static int cyphervtabNext(sqlite3_vtab_cursor *cur){
+    CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
+    pCur->iRowid++;
+    return SQLITE_OK;
+}
+
+static int cyphervtabColumn(
+    sqlite3_vtab_cursor *cur,   /* The cursor */
+    sqlite3_context *ctx,       /* First argument to sqlite3_result_...() */
+    int i                       /* Which column to return */
+) {
+    
+}
+
+static int cyphervtabRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
+
+}
+
+
+
 #endif
