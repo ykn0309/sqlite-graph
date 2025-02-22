@@ -295,6 +295,7 @@ public:
     std::string zCypher; // cypher string
     CypherNode *head; // head of linked list
     std::unordered_map<std::string, int> var_map; // map variable name to cyphernode index
+    std::vector<CypherNode*> variableCNode; // CypherNodes that constrain type is variable
     Graph *graph;
 
     Parser(std::string zCypher, Graph *graph): zCypher(zCypher), graph(graph), head(nullptr) {}
@@ -329,6 +330,7 @@ public:
                 std::string constrain = p->constrain;
                 p->constrain = "";
                 var_map[constrain] = i;
+                variableCNode.push_back(p);
             }
             p = p->next;
             i++;
@@ -455,7 +457,7 @@ private:
     Parser *parser;
     CypherNode *head;
 
-    CypherNode *findCypherNode(int k) {
+    CypherNode *findCypherNodeByIndex(int k) {
         CypherNode *p = head;
         int i = 0;
         while (1) {
@@ -497,9 +499,23 @@ public:
         }
     }
 
+    Graph* getGraph() {
+        return graph;
+    }
+
+    CypherNode* findCypherNodeByColumnId(int i) {
+        int var_len = parser->variableCNode.size();
+        if (i >= 0 && i < var_len) {
+            return parser->variableCNode[i];
+        } else {
+            std::cerr << "ERROR: Column id out of bound." << std::endl;
+            return nullptr;
+        }
+    }
+
     int query(std::string var, std::set<sqlite3_int64> &set) {
         int index = parser->var_map[var];
-        CypherNode *cnode = findCypherNode(index);
+        CypherNode *cnode = findCypherNodeByIndex(index);
         if (cnode->type == NODE) {
             for (auto it = cnode->nodeMap->begin(); it != cnode->nodeMap->end(); it++) {
                 set.insert(it->first);
@@ -572,13 +588,78 @@ static int cyphervtabColumn(
     sqlite3_context *ctx,       /* First argument to sqlite3_result_...() */
     int i                       /* Which column to return */
 ) {
-    
+    CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
+    CypherVtab *p = (CypherVtab*)cur->pVtab;
+    CypherNode *cnode = p->cypher->findCypherNodeByColumnId(i);
+    sqlite3_int64 id = cnode->results[pCur->iRowid];
+    Graph *graph = p->cypher->getGraph();
+    std::string label;
+    if (cnode->type == NODE) {
+        label = graph->getNodeLabelById(id);
+    } else {
+        label = graph->getEdgeLabelById(id);
+    }
+    sqlite3_result_text(ctx, label.c_str(), label.length(), SQLITE_TRANSIENT);
+    return SQLITE_OK;
 }
 
 static int cyphervtabRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
-
+    CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
+    *pRowid = pCur->iRowid;
+    return SQLITE_OK;
 }
 
+static int cyphervtabEof(sqlite3_vtab_cursor *cur) {
+    CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
+    CypherVtab *p = (CypherVtab*)cur->pVtab;
+    CypherNode *cnode0 = p->cypher->findCypherNodeByColumnId(0); // first variable cnode
+    int row_num = cnode0->results.size();
+    return pCur->iRowid >= row_num;
+}
 
+static int cyphervtabFilter(
+    sqlite3_vtab_cursor *pVtabCursor, 
+    int idxNum, const char *idxStr,
+    int argc, sqlite3_value **argv
+) {
+    CypherVtabCursor *pCur = (CypherVtabCursor*)pVtabCursor;
+    pCur->iRowid = 1;
+    return SQLITE_OK;
+}
+
+static int cyphervtabBestIndex(
+    sqlite3_vtab *tab,
+    sqlite3_index_info *pIdxInfo
+) {
+    return SQLITE_OK;
+}
+
+static sqlite3_module cyphervtabModule = {
+    /* iVersion    */ 0,
+    /* xCreate     */ 0,
+    /* xConnect    */ cyphervtabConnect,
+    /* xBestIndex  */ cyphervtabBestIndex,
+    /* xDisconnect */ cyphervtabDisconnect,
+    /* xDestroy    */ 0,
+    /* xOpen       */ cyphervtabOpen,
+    /* xClose      */ cyphervtabClose,
+    /* xFilter     */ cyphervtabFilter,
+    /* xNext       */ cyphervtabNext,
+    /* xEof        */ cyphervtabEof,
+    /* xColumn     */ cyphervtabColumn,
+    /* xRowid      */ cyphervtabRowid,
+    /* xUpdate     */ 0,
+    /* xBegin      */ 0,
+    /* xSync       */ 0,
+    /* xCommit     */ 0,
+    /* xRollback   */ 0,
+    /* xFindMethod */ 0,
+    /* xRename     */ 0,
+    /* xSavepoint  */ 0,
+    /* xRelease    */ 0,
+    /* xRollbackTo */ 0,
+    /* xShadowName */ 0,
+    /* xIntegrity  */ 0
+  };
 
 #endif

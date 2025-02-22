@@ -264,6 +264,17 @@ int sqlite3_graph_init(
     return rc;
 }
 
+int sqlite3_cyphervtab_init(
+    sqlite3 *db, 
+    char **pzErrMsg, 
+    const sqlite3_api_routines *pApi
+  ){
+    int rc = SQLITE_OK;
+    SQLITE_EXTENSION_INIT2(pApi);
+    rc = sqlite3_create_module(db, "templatevtab", &cyphervtabModule, 0);
+    return rc;
+  }
+
 #ifdef __cplusplus
 }
 #endif
