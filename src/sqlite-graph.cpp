@@ -261,19 +261,9 @@ int sqlite3_graph_init(
     sqlite3_create_function(db, "dfs", 1, SQLITE_UTF8, 0, dfs, 0, 0);
     sqlite3_create_function(db, "dijkstra", 3, SQLITE_UTF8, 0, dijkstra, 0, 0);
     sqlite3_create_function(db, "cypher", -1, SQLITE_UTF8, 0, match, 0, 0);
+    rc = sqlite3_create_module(db, "cypher", &cyphervtabModule, 0);
     return rc;
 }
-
-int sqlite3_cyphervtab_init(
-    sqlite3 *db, 
-    char **pzErrMsg, 
-    const sqlite3_api_routines *pApi
-  ){
-    int rc = SQLITE_OK;
-    SQLITE_EXTENSION_INIT2(pApi);
-    rc = sqlite3_create_module(db, "templatevtab", &cyphervtabModule, 0);
-    return rc;
-  }
 
 #ifdef __cplusplus
 }

@@ -1,3 +1,6 @@
+#ifndef GRAPH_MANAGER_H
+#define GRAPH_MANAGER_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,3 +41,5 @@ public:
         return graph;
     }
 };
+
+#endif

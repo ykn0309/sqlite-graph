@@ -8,6 +8,7 @@
 #include"json.hpp"
 #include"defs.h"
 #include"graph.h"
+#include"graph_manager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -547,18 +548,34 @@ static int cyphervtabConnect(sqlite3 *db,
 ) {
     CypherVtab *pNew;
     int rc;
-    std::string createSQL;
-    rc = sqlite3_declare_vtab(db, createSQL.c_str());
+    std::string sql = "CREATE TABLE cypher_result(";
+    for (int i = 1; i < argc; i++) {
+        sql += argv[i];
+        if (i != argc - 1) {
+            sql += ",";
+        }
+    }
+    sql += ")";
+    rc = sqlite3_declare_vtab(db, sql.c_str());
     if (rc == SQLITE_OK) {
         pNew = new(std::nothrow) CypherVtab();
         *ppVtab = (sqlite3_vtab*)pNew;
         if (pNew == nullptr) return SQLITE_NOMEM;
+        GraphManager &graphManager = GraphManager::getGraphManager();
+        Graph *graph = graphManager.getGraph();
+        std::string zCypher = argv[0];
+        Cypher *cypher = new Cypher(graph, zCypher);
+        pNew->cypher = cypher;
+        if (cypher->parse() == GRAPH_FAILED) return SQLITE_ERROR;
+        cypher->execute();
     }
     return rc;
 }
 
 static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {
     CypherVtab *p = (CypherVtab*)pVtab;
+    Cypher *cypher = p->cypher;
+    delete cypher;
     delete p;
     return SQLITE_OK;
 }
@@ -636,7 +653,7 @@ static int cyphervtabBestIndex(
 
 static sqlite3_module cyphervtabModule = {
     /* iVersion    */ 0,
-    /* xCreate     */ 0,
+    /* xCreate     */ cyphervtabConnect,
     /* xConnect    */ cyphervtabConnect,
     /* xBestIndex  */ cyphervtabBestIndex,
     /* xDisconnect */ cyphervtabDisconnect,
@@ -660,6 +677,6 @@ static sqlite3_module cyphervtabModule = {
     /* xRollbackTo */ 0,
     /* xShadowName */ 0,
     /* xIntegrity  */ 0
-  };
+};
 
 #endif

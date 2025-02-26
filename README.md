@@ -84,4 +84,6 @@ select cypher('(x)-->()-->("1000")', 'x');
 select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
+
+create virtual table ykn using graph('("0")-->(x)', 'x');
 ```
