@@ -4,7 +4,7 @@ FROM edges e1
 JOIN edges e2 ON e1.to_node = e2.from_node
 WHERE e1.from_node = '0';
 
-SELECT DISTINCT e2.to_node AS second_degree_neighbors_count
+SELECT COUNT(DISTINCT e2.to_node) AS second_degree_neighbors_count
 FROM edges e1
 JOIN edges e2 ON e1.to_node = e2.from_node
 WHERE e1.from_node = '0';

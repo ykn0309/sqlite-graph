@@ -540,6 +540,39 @@ struct CypherVtabCursor {
     sqlite3_int64 iRowid;
 };
 
+static int cyphervtabCreate(sqlite3 *db,
+    void *pAux,
+    int argc, const char *const*argv,
+    sqlite3_vtab **ppVtab,
+    char **pzErr
+) {
+    CypherVtab *pNew;
+    int rc;
+    std::string sql = "CREATE TABLE cypher_result(";
+    for (int i = 4; i < argc; i++) {
+        sql += argv[i];
+        if (i != argc - 1) {
+            sql += ",";
+        }
+    }
+    sql += ")";
+    rc = sqlite3_declare_vtab(db, sql.c_str());
+    if (rc == SQLITE_OK) {
+        pNew = new(std::nothrow) CypherVtab();
+        *ppVtab = (sqlite3_vtab*)pNew;
+        if (pNew == nullptr) return SQLITE_NOMEM;
+        GraphManager &graphManager = GraphManager::getGraphManager();
+        Graph *graph = graphManager.getGraph();
+        std::string zCypher = argv[3];
+        zCypher = zCypher.substr(1, zCypher.length() - 2);
+        Cypher *cypher = new Cypher(graph, zCypher);
+        pNew->cypher = cypher;
+        if (cypher->parse() == GRAPH_FAILED) return SQLITE_ERROR;
+        cypher->execute();
+    }
+    return rc;
+}
+
 static int cyphervtabConnect(sqlite3 *db,
     void *pAux,
     int argc, const char *const*argv,
@@ -573,6 +606,14 @@ static int cyphervtabConnect(sqlite3 *db,
 }
 
 static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {
+    CypherVtab *p = (CypherVtab*)pVtab;
+    Cypher *cypher = p->cypher;
+    delete cypher;
+    delete p;
+    return SQLITE_OK;
+}
+
+static int cyphervtabDestroy(sqlite3_vtab *pVtab) {
     CypherVtab *p = (CypherVtab*)pVtab;
     Cypher *cypher = p->cypher;
     delete cypher;
@@ -640,7 +681,7 @@ static int cyphervtabFilter(
     int argc, sqlite3_value **argv
 ) {
     CypherVtabCursor *pCur = (CypherVtabCursor*)pVtabCursor;
-    pCur->iRowid = 1;
+    pCur->iRowid = 0;
     return SQLITE_OK;
 }
 
@@ -653,11 +694,11 @@ static int cyphervtabBestIndex(
 
 static sqlite3_module cyphervtabModule = {
     /* iVersion    */ 0,
-    /* xCreate     */ cyphervtabConnect,
+    /* xCreate     */ cyphervtabCreate,
     /* xConnect    */ cyphervtabConnect,
     /* xBestIndex  */ cyphervtabBestIndex,
     /* xDisconnect */ cyphervtabDisconnect,
-    /* xDestroy    */ 0,
+    /* xDestroy    */ cyphervtabDestroy,
     /* xOpen       */ cyphervtabOpen,
     /* xClose      */ cyphervtabClose,
     /* xFilter     */ cyphervtabFilter,

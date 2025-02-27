@@ -55,7 +55,7 @@ select dijkstra('1', '6', 'weight');
 
 select cypher('("0")-->(x)', 'x');
 
-select cypher('("0")-->()-->(x)', 'x');
+select cypher('("0")-->(x)-->(y)', 'x', 'y');
 
 select cypher('("0")-->()-->()-->(x)', 'x');
 
@@ -85,5 +85,5 @@ select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
 
-create virtual table ykn using graph('("0")-->(x)', 'x');
+create virtual table test1 using cypher('("0")-->(x)-->(y)', x, y);
 ```
