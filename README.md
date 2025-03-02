@@ -85,5 +85,5 @@ select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
 
-create virtual table test4 using cypher('("0")-->(x)-->(y)-->(z)-->(w)', x, y, z, w);
+create virtual table test6 using cypher('("0")-->(x)-->(y)-->(z)-->(w)-->(a)', x, y, z, w, a);
 ```

@@ -450,7 +450,38 @@ private:
         }
     }
 
+    void dfs(NNode *nn, NEdge *ne, std::vector<sqlite3_int64> &result) {
+        bool add = 0;
+        if (nn == nullptr) { // NEdge
+            if (ne->cNode->isVariable) {
+                result.push_back(ne->iEdge);
+                add = 1;
+            }
+            dfs(ne->to_node, nullptr, result);
+        } else { // NNode
+            if (nn->cNode->isVariable) {
+                result.push_back(nn->iNode);
+                add = 1;
+            }
+            if (nn->cNode->next == nullptr) {
+                results.push_back(result);
+                if (add) {
+                    result.pop_back();
+                }
+                return;
+            }
+            for (auto it = nn->outEdge.begin(); it != nn->outEdge.end(); it++) {
+                dfs(nullptr, *it, result);
+            }
+        }
+        if (add) {
+            result.pop_back();
+        }
+    }
+
 public:
+    std::vector<std::vector<sqlite3_int64>> results;
+
     Cypher(Graph *graph, std::string zCypher): graph(graph), zCypher(zCypher), head(nullptr) {}
     
     ~Cypher() {
@@ -474,6 +505,13 @@ public:
             } else {
                 (*head->nodeMap)[it->first] = nn;
             }
+        }
+    }
+
+    void buildResults() {
+        for (auto it = head->nodeMap->begin(); it != head->nodeMap->end(); it++) {
+            std::vector<sqlite3_int64> result;
+            dfs(it->second, nullptr, result);
         }
     }
 
@@ -546,6 +584,7 @@ static int cyphervtabCreate(sqlite3 *db,
         pNew->cypher = cypher;
         if (cypher->parse() == GRAPH_FAILED) return SQLITE_ERROR;
         cypher->execute();
+        cypher->buildResults();
     }
     return rc;
 }
@@ -578,11 +617,12 @@ static int cyphervtabConnect(sqlite3 *db,
         pNew->cypher = cypher;
         if (cypher->parse() == GRAPH_FAILED) return SQLITE_ERROR;
         cypher->execute();
+        cypher->buildResults();
     }
     return rc;
 }
 
-static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {
+static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {\
     CypherVtab *p = (CypherVtab*)pVtab;
     Cypher *cypher = p->cypher;
     delete cypher;
@@ -590,7 +630,7 @@ static int cyphervtabDisconnect(sqlite3_vtab *pVtab) {
     return SQLITE_OK;
 }
 
-static int cyphervtabDestroy(sqlite3_vtab *pVtab) {
+static int cyphervtabDestroy(sqlite3_vtab *pVtab) {\
     CypherVtab *p = (CypherVtab*)pVtab;
     Cypher *cypher = p->cypher;
     delete cypher;
@@ -625,9 +665,10 @@ static int cyphervtabColumn(
 ) {
     CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
     CypherVtab *p = (CypherVtab*)cur->pVtab;
-    CypherNode *cnode = p->cypher->findCypherNodeByColumnId(i);
-    sqlite3_int64 id = cnode->results[pCur->iRowid];
+    std::vector<std::vector<sqlite3_int64>> *results = &p->cypher->results;
+    sqlite3_int64 id = (*results)[pCur->iRowid][i];
     Graph *graph = p->cypher->getGraph();
+    CypherNode *cnode = p->cypher->findCypherNodeByColumnId(i);
     std::string label;
     if (cnode->type == NODE) {
         label = graph->getNodeLabelById(id);
@@ -647,8 +688,7 @@ static int cyphervtabRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 static int cyphervtabEof(sqlite3_vtab_cursor *cur) {
     CypherVtabCursor *pCur = (CypherVtabCursor*)cur;
     CypherVtab *p = (CypherVtab*)cur->pVtab;
-    CypherNode *cnode0 = p->cypher->findCypherNodeByColumnId(0); // first variable cnode
-    int row_num = cnode0->results.size();
+    int row_num = p->cypher->results.size();
     return pCur->iRowid >= row_num;
 }
 
