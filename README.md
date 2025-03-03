@@ -6,9 +6,9 @@ A graph extension for SQLite
 
 
 ``` sql
-create table nodes(id integer primary key autoincrement, label text, attribute text);
+create table nodes(id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT UNIQUE, attribute TEXT);
 
-create table edges(id integer primary key autoincrement, from_node text, to_node text, label text, attribute text);
+create table edges(id INTEGER PRIMARY KEY AUTOINCREMENT, from_node TEXT, to_node TEXT, label TEXT UNIQUE, attribute TEXT);
 
 insert into nodes (label, attribute) values
     ('1', '{"color": "red"}'),
@@ -53,6 +53,8 @@ select showAdjTable();
 
 select dijkstra('1', '6', 'weight');
 
+select dijkstra('Brigadier Hoshiyar Singh', 'Raja Nahar Singh', 'weight');
+
 select cypher('("0")-->(x)', 'x');
 
 select cypher('("0")-->(x)-->(y)', 'x', 'y');
@@ -85,5 +87,5 @@ select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
 
-create virtual table test6 using cypher('("0")-->(x)-->(y)-->(z)-->(w)-->(a)', x, y, z, w, a);
+create virtual table test8 using cypher('("0")-->(x)-->(y)-->(z)-->(w)-->(a)', x, y, z, w, a);
 ```
