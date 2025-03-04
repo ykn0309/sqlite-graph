@@ -179,6 +179,10 @@ class Graph {
 
         // 析构函数
         ~Graph() {
+            sqlite3_stmt *stmt = nullptr;
+            while ((stmt = sqlite3_next_stmt(db, nullptr)) != nullptr) {
+                sqlite3_finalize(stmt);
+            }
             delete binding_info;
             delete nodeMap;
             delete edgeMap;
@@ -687,6 +691,7 @@ int Graph::loadGraphFromTable() {
             return GRAPH_FAILED;
         }
     }
+    sqlite3_finalize(stmt);
 
     std::string selected_column = "id, " + binding_info->from_node_alias + ", " + binding_info->to_node_alias;
     sql = "SELECT " + selected_column + " FROM " + binding_info->edge_table + ";";

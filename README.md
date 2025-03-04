@@ -1,10 +1,6 @@
 # sqlite-graph
 A graph extension for SQLite
 
-## to-do
-
-
-
 ``` sql
 create table nodes(id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT UNIQUE, attribute TEXT);
 
@@ -26,22 +22,6 @@ insert into edges (from_node, to_node, label, attribute) values
     ('2', '5', 'F', '{"weight": 1}'),
     ('3', '5', 'G', '{"weight": 1}'),
     ('4', '5', 'H', '{"weight": 1}');
-
--- insert into nodes (label, attribute) values
---     ('1', ''),
---     ('2', ''),
---     ('3', ''),
---     ('4', ''),
---     ('5', ''),
---     ('6', '');
--- insert into edges (from_node, to_node, label, attribute) values
---     ('1', '3', 'a', '"weight": 10'),
---     ('2', '3', 'b', '"weight": 5'),
---     ('1', '5', 'c', '"weight": 30'),
---     ('1', '6', 'd', '"weight": 100'),
---     ('3', '4', 'e', '"weight": 50'),
---     ('5', '4', 'f', '"weight": 20'),
---     ('4', '6', 'g', '"weight": 10');
 
 .open graph.db
 
