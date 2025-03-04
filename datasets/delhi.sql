@@ -1,3 +1,4 @@
+BEGIN TRANSACTION;
 INSERT INTO nodes (label) VALUES ('Yamuna Bank');
 INSERT INTO nodes (label) VALUES ('Laxmi Nagar');
 INSERT INTO nodes (label) VALUES ('Nirman Vihar');
@@ -705,3 +706,4 @@ INSERT INTO edges (from_node, to_node, label, attribute) VALUES ('MG Road', 'IFF
 INSERT INTO edges (from_node, to_node, label, attribute) VALUES ('IFFCO Chowk', 'MG Road', '477', '{"weight": 1}');
 INSERT INTO edges (from_node, to_node, label, attribute) VALUES ('IFFCO Chowk', 'HUDA City Centre', '478', '{"weight": 1}');
 INSERT INTO edges (from_node, to_node, label, attribute) VALUES ('HUDA City Centre', 'IFFCO Chowk', '479', '{"weight": 1}');
+COMMIT;

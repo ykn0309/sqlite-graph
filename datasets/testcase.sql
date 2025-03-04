@@ -60,6 +60,12 @@ JOIN edges e2 ON e1.from_node = e2.to_node
 JOIN edges e3 ON e2.from_node = e3.to_node
 WHERE e1.to_node = '1000';
 
+SELECT DISTINCT e3.to_node AS reverse_second_degree_neighbors_count
+FROM edges e1
+JOIN edges e2 ON e1.from_node = e2.to_node
+JOIN edges e3 ON e2.from_node = e3.to_node
+WHERE e1.to_node = '1000';
+
 -- Cypher求正向邻居节点
 MATCH (n:Node {id: 0})-[:CONNECTED_TO]->(neighbor)
 RETURN COUNT(DISTINCT neighbor) AS neighbor_count;
