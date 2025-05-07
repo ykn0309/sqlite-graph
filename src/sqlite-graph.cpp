@@ -177,8 +177,10 @@ static void dijkstra(sqlite3_context *context, int argc, sqlite3_value **argv) {
         st.pop();
     }
     out.erase(out.size() - 2);
-    std::cout << out << std::endl;
-    std::cout << dijkstra.dist[end_id];
+    // std::cout << out << std::endl;
+    // std::cout << dijkstra.dist[end_id];
+    out += "\nDistance: " + std::to_string(dijkstra.dist[end_id]);
+    sqlite3_result_text(context, out.c_str(), -1, SQLITE_TRANSIENT);
 }
 
 static void match(sqlite3_context *context, int argc, sqlite3_value **argv) {

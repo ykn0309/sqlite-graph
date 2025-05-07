@@ -1,0 +1,45 @@
+扩展加载成功！
+2.9663e-05 
+2.68282e-05 %                                                                                                                        
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+4.8869e-05 
+4.51994e-05 %                                                                                                                        
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.000240397 
+0.0002144 %                                                                                                                          
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.000416677 
+0.000414129 %                                                                                                                        
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.00257581 
+0.00259699 %                                                                                                                         
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.00594133 
+0.00609901 %                                                                                                                         
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.0133271 
+0.0134022 %                                                                                                                          
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance
+g++ -g experiments/bfs_dfs_performance.cpp  -I src/include -o bfs_dfs_performance -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance   
+扩展加载成功！
+0.0284098 
+0.0287261 %  

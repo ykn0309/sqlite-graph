@@ -159,7 +159,10 @@ void Dijkstra::runDijkstra() {
 
         Node *node = graph->nodeMap->find(u);
         for (sqlite3_int64 edge_id : node->outEdge) {
-            double w = graph->getEdgeWeight(edge_id, weight_alias);
+            double w = 1;
+            if (weight_alias != "") {
+                w = graph->getEdgeWeight(edge_id, weight_alias);
+            }
             Edge *e = graph->edgeMap->find(edge_id);
             sqlite3_int64 v = e->toNode;
             if (dist[u] + w < dist[v]) {

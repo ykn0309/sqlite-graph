@@ -112,6 +112,18 @@ select cypher('(x)-->("1000")', 'x');
 
 select cypher('(x)-->()', 'x');
 
+create virtual table t1 using cypher('("0")-->(x)', x);
+create virtual table t2 using cypher('("0")-->()-->(x)', x);
+create virtual table t3 using cypher('("0")-->()-->()-->(x)', x);
+create virtual table t4 using cypher('("0")-->()-->()-->()-->(x)', x);
+create virtual table t5 using cypher('("0")-->()-->()-->()-->()-->(x)', x);
+create virtual table t6 using cypher('(x)-->("1000")', x);
+create virtual table t7 using cypher('(x)-->()-->("1000")', x);
+create virtual table t8 using cypher('(x)-->()-->()-->("1000")', x);
+create virtual table t9 using cypher('(x)-->()-->()-->()-->("1000")', x);
+create virtual table t10 using cypher('(x)-->()-->()-->()-->()-->("1000")', x);
+
+
 create virtual table test using cypher('("0")-->(x)-->(y)-->(z)-->(w)-->(a)', x, y, z, w, a);
 
 create virtual table test1 using cypher('(x)-[a]->(y)-[b]->(z)-[c]->("1000")', x, y, z, a, b, c);

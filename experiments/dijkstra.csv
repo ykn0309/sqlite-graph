@@ -1,0 +1,74 @@
+database,run_index,time_seconds,path_length
+facebook_5.db,1,0.000144,1
+facebook_5.db,2,0.000056,1
+facebook_5.db,3,0.000049,1
+facebook_5.db,4,0.000045,1
+facebook_5.db,5,0.000044,1
+facebook_10.db,1,0.000080,1
+facebook_10.db,2,0.000074,1
+facebook_10.db,3,0.000074,1
+facebook_10.db,4,0.000073,1
+facebook_10.db,5,0.000070,1
+facebook_50.db,1,0.000479,1
+facebook_50.db,2,0.000459,1
+facebook_50.db,3,0.000476,1
+facebook_50.db,4,0.000457,1
+facebook_50.db,5,0.000458,1
+facebook_100.db,1,0.001722,1
+facebook_100.db,2,0.001824,1
+facebook_100.db,3,0.001783,1
+facebook_100.db,4,0.001979,1
+facebook_100.db,5,0.001860,1
+facebook_500.db,1,0.054570,2
+facebook_500.db,2,0.054468,2
+facebook_500.db,3,0.051699,2
+facebook_500.db,4,0.053054,2
+facebook_500.db,5,0.054390,2
+facebook_1000.db,1,0.180146,2
+facebook_1000.db,2,0.178940,2
+facebook_1000.db,3,0.185910,2
+facebook_1000.db,4,0.177838,2
+facebook_1000.db,5,0.174511,2
+facebook_2000.db,1,0.566616,2
+facebook_2000.db,2,0.569276,2
+facebook_2000.db,3,0.550882,2
+facebook_2000.db,4,0.557178,2
+facebook_2000.db,5,0.552105,2
+facebook_4000.db,1,14.081528,5
+facebook_4000.db,2,14.128883,5
+facebook_4000.db,3,14.127190,5
+facebook_4000.db,4,14.080380,5
+facebook_4000.db,5,14.091562,5
+
+
+测试数据库: facebook_5.db，从 0 到 4...
+平均耗时: 6.76e-05 s
+最短路径步数: 1
+
+测试数据库: facebook_10.db，从 0 到 9...
+平均耗时: 7.42e-05 s
+最短路径步数: 1
+
+测试数据库: facebook_50.db，从 0 到 49...
+平均耗时: 0.0004658 s
+最短路径步数: 1
+
+测试数据库: facebook_100.db，从 0 到 99...
+平均耗时: 0.0018336 s
+最短路径步数: 1
+
+测试数据库: facebook_500.db，从 0 到 1912...
+平均耗时: 0.0536362 s
+最短路径步数: 2
+
+测试数据库: facebook_1000.db，从 0 到 1912...
+平均耗时: 0.179469 s
+最短路径步数: 2
+
+测试数据库: facebook_2000.db，从 0 到 3290...
+平均耗时: 0.559211 s
+最短路径步数: 2
+
+测试数据库: facebook_4000.db，从 0 到 4038...
+平均耗时: 14.1019 s
+最短路径步数: 5

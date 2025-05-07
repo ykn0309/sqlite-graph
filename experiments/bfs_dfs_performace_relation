@@ -1,0 +1,46 @@
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_5.db
+4.25036e-05
+2.26664e-05%                                                                                                                                                
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_10.db
+0.000104401
+4.53364e-05%                                                                                                                                                
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_50.db
+0.000464904
+0.0003792%                                                                                                                                                  
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_100.db
+0.00159023
+0.00158872%                                                                                                                                                 
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_500.db
+0.0672681
+0.0667005%                                                                                                                                                  
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_1000.db
+0.466275
+0.466817%                                                                                                                                                   
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_2000.db
+2.99914
+2.97731%                                                                                                                                                    
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  make bfs_dfs_performance_relation
+g++ -g experiments/bfs_dfs_performance_relation.cpp  -I src/include -o bfs_dfs_performance_relation -lsqlite3
+ ykn@LAPTOP-2PR02VJP  ~/Files/sqlite-graph   main ±  ./bfs_dfs_performance_relation   
+facebook_4000.db
+13.0827
+13.0831%     

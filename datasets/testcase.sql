@@ -1,4 +1,8 @@
 -- SQL求正向邻居节点
+SELECT COUNT(DISTINCT e1.to_node) AS first_degree_neighbors_count
+FROM edges e1
+WHERE e1.from_node = '0';
+
 SELECT COUNT(DISTINCT e2.to_node) AS second_degree_neighbors_count
 FROM edges e1
 JOIN edges e2 ON e1.to_node = e2.from_node
@@ -54,16 +58,34 @@ JOIN edges e5 ON e4.to_node = e5.from_node
 WHERE e1.from_node = '0';
 
 -- SQL反向二阶邻居节点
-SELECT COUNT(DISTINCT e3.to_node) AS reverse_second_degree_neighbors_count
+SELECT DISTINCT e1.from_node AS reverse_first_degree_neighbors_count
+FROM edges e1
+WHERE e1.to_node = '1000';
+
+SELECT DISTINCT e2.from_node AS reverse_second_degree_neighbors_count
+FROM edges e1
+JOIN edges e2 ON e1.from_node = e2.to_node
+WHERE e1.to_node = '1000';
+
+SELECT DISTINCT e3.from_node AS reverse_third_degree_neighbors_count
 FROM edges e1
 JOIN edges e2 ON e1.from_node = e2.to_node
 JOIN edges e3 ON e2.from_node = e3.to_node
 WHERE e1.to_node = '1000';
 
-SELECT DISTINCT e3.to_node AS reverse_second_degree_neighbors_count
+SELECT DISTINCT e4.from_node AS reverse_fourth_degree_neighbors_count
 FROM edges e1
 JOIN edges e2 ON e1.from_node = e2.to_node
 JOIN edges e3 ON e2.from_node = e3.to_node
+JOIN edges e4 ON e3.from_node = e4.to_node
+WHERE e1.to_node = '1000';
+
+SELECT DISTINCT e5.from_node AS reverse_fourth_degree_neighbors_count
+FROM edges e1
+JOIN edges e2 ON e1.from_node = e2.to_node
+JOIN edges e3 ON e2.from_node = e3.to_node
+JOIN edges e4 ON e3.from_node = e4.to_node
+JOIN edges e5 ON e4.from_node = e5.to_node
 WHERE e1.to_node = '1000';
 
 -- Cypher求正向邻居节点

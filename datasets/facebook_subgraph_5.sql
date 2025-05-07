@@ -1,0 +1,11 @@
+BEGIN TRANSACTION;
+INSERT INTO nodes (label) VALUES ('0');
+INSERT INTO nodes (label) VALUES ('1');
+INSERT INTO nodes (label) VALUES ('2');
+INSERT INTO nodes (label) VALUES ('3');
+INSERT INTO nodes (label) VALUES ('4');
+INSERT INTO edges (from_node, to_node, label) VALUES ('0', '1', '0');
+INSERT INTO edges (from_node, to_node, label) VALUES ('0', '2', '1');
+INSERT INTO edges (from_node, to_node, label) VALUES ('0', '3', '2');
+INSERT INTO edges (from_node, to_node, label) VALUES ('0', '4', '3');
+COMMIT;
